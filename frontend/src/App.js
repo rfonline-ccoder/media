@@ -628,13 +628,16 @@ const ShopPage = () => {
   }, []);
 
   const fetchShopItems = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(`${API}/shop/items`);
-      setItems(response.data);
-      const uniqueCategories = [...new Set(response.data.map(item => item.category))];
+      console.log('Shop items response:', response.data);
+      setItems(response.data || []);
+      const uniqueCategories = [...new Set((response.data || []).map(item => item.category))];
       setCategories(uniqueCategories);
     } catch (error) {
       console.error('Failed to fetch shop items:', error);
+      setMessage('Ошибка загрузки товаров');
     }
     setLoading(false);
   };
@@ -678,22 +681,24 @@ const ShopPage = () => {
           </Alert>
         )}
 
-        <div className="mb-6">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Выберите категорию" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все категории</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {categories.length > 0 && (
+          <div className="mb-6">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Выберите категорию" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все категории</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {loading ? (
-          <div className="text-center">Загрузка...</div>
+          <div className="text-center">Загрузка товаров...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => (
@@ -721,6 +726,12 @@ const ShopPage = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {!loading && filteredItems.length === 0 && (
+          <div className="text-center text-gray-500">
+            {selectedCategory === 'all' ? 'Товаров пока нет' : 'Нет товаров в данной категории'}
           </div>
         )}
       </div>
