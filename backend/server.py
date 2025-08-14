@@ -285,8 +285,10 @@ async def get_purchases(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     purchases = await db.purchases.find().to_list(1000)
-    # Enrich with user info
+    # Remove MongoDB _id fields and enrich with user info
     for purchase in purchases:
+        if "_id" in purchase:
+            del purchase["_id"]
         user = await db.users.find_one({"id": purchase["user_id"]})
         purchase["user_nickname"] = user["nickname"] if user else "Unknown"
         item = await db.shop_items.find_one({"id": purchase["item_id"]})
