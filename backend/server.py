@@ -110,6 +110,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user = await db.users.find_one({"id": user_id})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
+        
+        # Remove MongoDB _id field to avoid serialization issues
+        if "_id" in user:
+            del user["_id"]
+            
         return user
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
