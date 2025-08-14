@@ -143,6 +143,10 @@ async def login(login_data: LoginRequest):
     if not user["is_approved"]:
         raise HTTPException(status_code=401, detail="Account not approved yet")
     
+    # Remove MongoDB _id field to avoid serialization issues
+    if "_id" in user:
+        del user["_id"]
+    
     token = jwt.encode({"user_id": user["id"]}, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return {"access_token": token, "token_type": "bearer", "user": user}
 
