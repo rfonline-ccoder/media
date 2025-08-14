@@ -340,12 +340,28 @@ async def approve_report(report_id: str, comment: str = "", current_user: dict =
     if current_user["admin_level"] < 1:
         raise HTTPException(status_code=403, detail="Admin access required")
     
+    # Get the report
+    report = await db.reports.find_one({"id": report_id})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Calculate MC reward based on total views
+    total_views = sum(link.get("views", 0) for link in report.get("links", []))
+    mc_reward = max(10, total_views // 100)  # At least 10 MC, 1 MC per 100 views
+    
+    # Update report status
     await db.reports.update_one(
         {"id": report_id},
         {"$set": {"status": "approved", "admin_comment": comment, "reviewed_at": datetime.utcnow()}}
     )
     
-    return {"message": "Report approved"}
+    # Add MC to user balance
+    await db.users.update_one(
+        {"id": report["user_id"]},
+        {"$inc": {"balance": mc_reward}}
+    )
+    
+    return {"message": f"Report approved and {mc_reward} MC added to user balance"}
 
 @api_router.get("/admin/users")
 async def get_all_users(current_user: dict = Depends(get_current_user)):
