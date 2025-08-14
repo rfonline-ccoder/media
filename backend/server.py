@@ -216,6 +216,10 @@ async def submit_report(report_data: ReportCreate, current_user: dict = Depends(
 @api_router.get("/reports/my")
 async def get_my_reports(current_user: dict = Depends(get_current_user)):
     reports = await db.reports.find({"user_id": current_user["id"]}).to_list(1000)
+    # Remove MongoDB _id fields
+    for report in reports:
+        if "_id" in report:
+            del report["_id"]
     return reports
 
 # Admin endpoints
