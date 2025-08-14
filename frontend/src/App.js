@@ -855,6 +855,7 @@ const AdminPage = () => {
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('applications');
 
   useEffect(() => {
     if (isAuthenticated && user?.admin_level >= 1) {
@@ -872,10 +873,10 @@ const AdminPage = () => {
         axios.get(`${API}/admin/users`)
       ]);
       
-      setApplications(appsRes.data);
-      setPurchases(purchasesRes.data);
-      setReports(reportsRes.data);
-      setUsers(usersRes.data);
+      setApplications(appsRes.data || []);
+      setPurchases(purchasesRes.data || []);
+      setReports(reportsRes.data || []);
+      setUsers(usersRes.data || []);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     }
@@ -934,17 +935,25 @@ const AdminPage = () => {
     return <Navigate to="/" />;
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-xl">Загрузка админ панели...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-center mb-8">Админ панель</h1>
 
-        <Tabs defaultValue="applications" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="applications">Заявки</TabsTrigger>
-            <TabsTrigger value="purchases">Покупки</TabsTrigger>
-            <TabsTrigger value="reports">Отчеты</TabsTrigger>
-            <TabsTrigger value="users">Пользователи</TabsTrigger>
+            <TabsTrigger value="applications">Заявки ({applications.filter(app => app.status === 'pending').length})</TabsTrigger>
+            <TabsTrigger value="purchases">Покупки ({purchases.filter(p => p.status === 'pending').length})</TabsTrigger>
+            <TabsTrigger value="reports">Отчеты ({reports.filter(r => r.status === 'pending').length})</TabsTrigger>
+            <TabsTrigger value="users">Пользователи ({users.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="applications" className="mt-6">
@@ -953,31 +962,35 @@ const AdminPage = () => {
                 <CardTitle>Заявки на регистрацию</CardTitle>
               </CardHeader>
               <CardContent>
-                {applications.filter(app => app.status === 'pending').map((app) => (
-                  <div key={app.id} className="border rounded-lg p-4 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="font-semibold">{app.data.nickname}</h3>
-                        <p><strong>Логин:</strong> {app.data.login}</p>
-                        <p><strong>VK:</strong> <a href={app.data.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
-                        <p><strong>Канал:</strong> <a href={app.data.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
-                      </div>
-                      <div className="flex flex-col space-y-2">
-                        <div className="flex space-x-2">
-                          <Button onClick={() => handleApplicationAction(app.id, 'approve', 0)}>
-                            Одобрить (Бесплатное)
-                          </Button>
-                          <Button onClick={() => handleApplicationAction(app.id, 'approve', 1)}>
-                            Одобрить (Платное)
+                {applications.filter(app => app.status === 'pending').length === 0 ? (
+                  <div className="text-center text-gray-500">Нет новых заявок</div>
+                ) : (
+                  applications.filter(app => app.status === 'pending').map((app) => (
+                    <div key={app.id} className="border rounded-lg p-4 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold">{app.data.nickname}</h3>
+                          <p><strong>Логин:</strong> {app.data.login}</p>
+                          <p><strong>VK:</strong> <a href={app.data.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
+                          <p><strong>Канал:</strong> <a href={app.data.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
+                        </div>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex space-x-2">
+                            <Button onClick={() => handleApplicationAction(app.id, 'approve', 0)}>
+                              Одобрить (Бесплатное)
+                            </Button>
+                            <Button onClick={() => handleApplicationAction(app.id, 'approve', 1)}>
+                              Одобрить (Платное)
+                            </Button>
+                          </div>
+                          <Button variant="destructive" onClick={() => handleApplicationAction(app.id, 'reject')}>
+                            Отклонить
                           </Button>
                         </div>
-                        <Button variant="destructive" onClick={() => handleApplicationAction(app.id, 'reject')}>
-                          Отклонить
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -988,26 +1001,30 @@ const AdminPage = () => {
                 <CardTitle>Заявки на покупки</CardTitle>
               </CardHeader>
               <CardContent>
-                {purchases.filter(purchase => purchase.status === 'pending').map((purchase) => (
-                  <div key={purchase.id} className="border rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-semibold">{purchase.user_nickname}</h3>
-                        <p><strong>Товар:</strong> {purchase.item_name}</p>
-                        <p><strong>Количество:</strong> {purchase.quantity}</p>
-                        <p><strong>Цена:</strong> {purchase.total_price} MC</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button onClick={() => handlePurchaseAction(purchase.id, 'approve')}>
-                          Одобрить
-                        </Button>
-                        <Button variant="destructive" onClick={() => handlePurchaseAction(purchase.id, 'reject')}>
-                          Отклонить
-                        </Button>
+                {purchases.filter(purchase => purchase.status === 'pending').length === 0 ? (
+                  <div className="text-center text-gray-500">Нет новых заявок на покупки</div>
+                ) : (
+                  purchases.filter(purchase => purchase.status === 'pending').map((purchase) => (
+                    <div key={purchase.id} className="border rounded-lg p-4 mb-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold">{purchase.user_nickname}</h3>
+                          <p><strong>Товар:</strong> {purchase.item_name}</p>
+                          <p><strong>Количество:</strong> {purchase.quantity}</p>
+                          <p><strong>Цена:</strong> {purchase.total_price} MC</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button onClick={() => handlePurchaseAction(purchase.id, 'approve')}>
+                            Одобрить
+                          </Button>
+                          <Button variant="destructive" onClick={() => handlePurchaseAction(purchase.id, 'reject')}>
+                            Отклонить
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1015,35 +1032,39 @@ const AdminPage = () => {
           <TabsContent value="reports" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Отчеты</CardTitle>
+                <CardTitle>Отчеты на рассмотрении</CardTitle>
               </CardHeader>
               <CardContent>
-                {reports.filter(report => report.status === 'pending').map((report) => (
-                  <div key={report.id} className="border rounded-lg p-4 mb-4">
-                    <div className="mb-4">
-                      <h3 className="font-semibold">{report.user_nickname}</h3>
-                      <div className="space-y-1 mt-2">
-                        {report.links.map((link, index) => (
-                          <div key={index} className="flex justify-between">
-                            <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600">
-                              {link.url}
-                            </a>
-                            <span>{link.views} просмотров</span>
-                          </div>
-                        ))}
+                {reports.filter(report => report.status === 'pending').length === 0 ? (
+                  <div className="text-center text-gray-500">Нет новых отчетов</div>
+                ) : (
+                  reports.filter(report => report.status === 'pending').map((report) => (
+                    <div key={report.id} className="border rounded-lg p-4 mb-4">
+                      <div className="mb-4">
+                        <h3 className="font-semibold">{report.user_nickname}</h3>
+                        <div className="space-y-1 mt-2">
+                          {report.links.map((link, index) => (
+                            <div key={index} className="flex justify-between">
+                              <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                {link.url}
+                              </a>
+                              <span>{link.views} просмотров</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Input placeholder="Комментарий..." id={`comment-${report.id}`} className="flex-1" />
+                        <Button onClick={() => {
+                          const comment = document.getElementById(`comment-${report.id}`).value;
+                          handleReportApprove(report.id, comment);
+                        }}>
+                          Одобрить
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Input placeholder="Комментарий..." id={`comment-${report.id}`} />
-                      <Button onClick={() => {
-                        const comment = document.getElementById(`comment-${report.id}`).value;
-                        handleReportApprove(report.id, comment);
-                      }}>
-                        Одобрить
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1054,33 +1075,36 @@ const AdminPage = () => {
                 <CardTitle>Управление пользователями</CardTitle>
               </CardHeader>
               <CardContent>
-                {users.map((user) => (
-                  <div key={user.id} className="border rounded-lg p-4 mb-4">
+                {users.map((userItem) => (
+                  <div key={userItem.id} className="border rounded-lg p-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <h3 className="font-semibold">{user.nickname}</h3>
-                        <p><strong>Логин:</strong> {user.login}</p>
-                        <p><strong>Баланс:</strong> {user.balance} MC</p>
-                        <p><strong>Предупреждения:</strong> {user.warnings || 0}</p>
+                        <h3 className="font-semibold">{userItem.nickname}</h3>
+                        <p><strong>Логин:</strong> {userItem.login}</p>
+                        <p><strong>Баланс:</strong> {userItem.balance} MC</p>
+                        <p><strong>Предупреждения:</strong> {userItem.warnings || 0}/3</p>
                       </div>
                       <div>
-                        <p><strong>Статус:</strong> {user.is_approved ? 'Одобрен' : 'Не одобрен'}</p>
-                        <p><strong>Тип:</strong> {user.media_type === 1 ? 'Платное' : 'Бесплатное'}</p>
+                        <p><strong>Статус:</strong> {userItem.is_approved ? 'Одобрен' : 'Не одобрен'}</p>
+                        <p><strong>Тип:</strong> {userItem.media_type === 1 ? 'Платное' : 'Бесплатное'}</p>
+                        <p><strong>Админ:</strong> {userItem.admin_level > 0 ? 'Да' : 'Нет'}</p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex space-x-2">
-                          <Input placeholder="Сумма" id={`balance-${user.id}`} type="number" />
-                          <Button onClick={() => {
-                            const amount = document.getElementById(`balance-${user.id}`).value;
-                            handleUserAction(user.id, 'balance', parseInt(amount));
+                          <Input placeholder="Сумма" id={`balance-${userItem.id}`} type="number" className="w-20" />
+                          <Button size="sm" onClick={() => {
+                            const amount = document.getElementById(`balance-${userItem.id}`).value;
+                            if (amount) handleUserAction(userItem.id, 'balance', parseInt(amount));
                           }}>
                             +/- MC
                           </Button>
                         </div>
                         <Button 
                           variant="outline" 
-                          onClick={() => handleUserAction(user.id, 'warning')}
+                          size="sm"
+                          onClick={() => handleUserAction(userItem.id, 'warning')}
                           className="w-full"
+                          disabled={userItem.warnings >= 3}
                         >
                           Выдать предупреждение
                         </Button>
