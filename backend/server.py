@@ -326,8 +326,10 @@ async def get_all_reports(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     reports = await db.reports.find().to_list(1000)
-    # Enrich with user info
+    # Remove MongoDB _id fields and enrich with user info
     for report in reports:
+        if "_id" in report:
+            del report["_id"]
         user = await db.users.find_one({"id": report["user_id"]})
         report["user_nickname"] = user["nickname"] if user else "Unknown"
     
