@@ -365,7 +365,10 @@ const LoginPage = () => {
     try {
       const response = await axios.post(`${API}/login`, formData);
       login(response.data.access_token, response.data.user);
-      window.location.href = '/profile';
+      // Force page reload to ensure proper navigation
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     } catch (error) {
       setMessage(`Ошибка: ${error.response?.data?.detail || error.message}`);
     }
