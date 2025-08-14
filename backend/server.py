@@ -229,6 +229,10 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     applications = await db.applications.find().to_list(1000)
+    # Remove MongoDB _id fields
+    for app in applications:
+        if "_id" in app:
+            del app["_id"]
     return applications
 
 @api_router.post("/admin/applications/{app_id}/approve")
