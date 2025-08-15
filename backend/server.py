@@ -294,7 +294,8 @@ async def purchase_item(purchase: PurchaseRequest, current_user: dict = Depends(
 
 # Reports endpoints
 @api_router.post("/reports")
-async def submit_report(report_data: ReportCreate, current_user: dict = Depends(get_current_user)):
+@limiter.limit("50/day")
+async def submit_report(request: Request, report_data: ReportCreate, current_user: dict = Depends(get_current_user)):
     report = Report(
         user_id=current_user["id"],
         links=report_data.links
