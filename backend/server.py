@@ -635,6 +635,26 @@ async def get_my_reports(current_user: dict = Depends(get_current_user), db: Ses
         "admin_comment": report.admin_comment
     } for report in reports]
 
+@api_router.get("/profile")
+async def get_profile(current_user: dict = Depends(get_current_user)):
+    """Получить профиль текущего пользователя"""
+    return {
+        "id": current_user["id"],
+        "login": current_user["login"],
+        "nickname": current_user["nickname"],
+        "vk_link": current_user["vk_link"],
+        "channel_link": current_user["channel_link"],
+        "balance": current_user["balance"],
+        "admin_level": current_user["admin_level"],
+        "is_approved": current_user["is_approved"],
+        "media_type": current_user["media_type"],
+        "warnings": current_user["warnings"],
+        "previews_used": current_user["previews_used"],
+        "previews_limit": current_user["previews_limit"],
+        "blacklist_until": current_user["blacklist_until"],
+        "registration_ip": current_user["registration_ip"]
+    }
+
 @api_router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
     """Получить общую статистику платформы"""
