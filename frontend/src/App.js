@@ -187,6 +187,11 @@ const Navigation = () => {
               <span>Медиа</span>
             </a>
 
+            <a href="/ratings" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+              <Star className="h-4 w-4" />
+              <span>Рейтинги</span>
+            </a>
+
             {isAuthenticated && (
               <>
                 <a href="/profile" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
