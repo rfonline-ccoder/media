@@ -2928,11 +2928,7 @@ const AdminPage = () => {
                                   variant="destructive"
                                   size="sm"
                                   className="w-full"
-                                  onClick={() => {
-                                    if (confirm(`Выдать предупреждение пользователю ${userItem.nickname}?`)) {
-                                      handleUserAction(userItem.id, 'warning');
-                                    }
-                                  }}
+                                  onClick={() => openWarningModal(userItem)}
                                 >
                                   ⚠️ Предупреждение
                                 </Button>
