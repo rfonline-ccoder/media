@@ -355,17 +355,120 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
     return current_user
 
 @api_router.get("/media-list")
-async def get_media_list():
+async def get_media_list(current_user: dict = Depends(get_current_user)):
+    # Check if user is blacklisted
+    if current_user.get("blacklist_until") and current_user["blacklist_until"] > datetime.utcnow():
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Доступ заблокирован до {current_user['blacklist_until'].strftime('%d.%m.%Y %H:%M')}"
+        )
+    
     users = await db.users.find({"is_approved": True}).to_list(1000)
     media_list = []
     for user in users:
+        # Don't show blacklisted users
+        if user.get("blacklist_until") and user["blacklist_until"] > datetime.utcnow():
+            continue
+            
         media_list.append({
+            "id": user["id"],
             "nickname": user["nickname"],
             "channel_link": user["channel_link"],
             "vk_link": user["vk_link"],
-            "media_type": "Платное" if user["media_type"] == 1 else "Бесплатное"
+            "media_type": "Платное" if user["media_type"] == 1 else "Бесплатное",
+            "can_access": user["media_type"] == 0 or current_user["media_type"] == 1
         })
     return media_list
+
+@api_router.post("/media/{media_user_id}/access")
+async def access_media(media_user_id: str, current_user: dict = Depends(get_current_user)):
+    # Check if user is blacklisted
+    if current_user.get("blacklist_until") and current_user["blacklist_until"] > datetime.utcnow():
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Доступ заблокирован до {current_user['blacklist_until'].strftime('%d.%m.%Y %H:%M')}"
+        )
+    
+    # Get media user
+    media_user = await db.users.find_one({"id": media_user_id})
+    if not media_user or not media_user.get("is_approved"):
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # If media is free, allow full access
+    if media_user["media_type"] == 0:
+        access_record = MediaAccess(
+            user_id=current_user["id"],
+            media_user_id=media_user_id,
+            access_type="full"
+        )
+        await db.media_access.insert_one(access_record.dict())
+        return {
+            "access_type": "full",
+            "message": "Полный доступ к бесплатному медиа",
+            "data": {
+                "nickname": media_user["nickname"],
+                "channel_link": media_user["channel_link"],
+                "vk_link": media_user["vk_link"]
+            }
+        }
+    
+    # If user has paid access, allow full access
+    if current_user["media_type"] == 1:
+        access_record = MediaAccess(
+            user_id=current_user["id"],
+            media_user_id=media_user_id,
+            access_type="full"
+        )
+        await db.media_access.insert_one(access_record.dict())
+        return {
+            "access_type": "full",
+            "message": "Полный доступ для платного пользователя",
+            "data": {
+                "nickname": media_user["nickname"],
+                "channel_link": media_user["channel_link"],
+                "vk_link": media_user["vk_link"]
+            }
+        }
+    
+    # For free users accessing paid media - use preview system
+    user_previews = current_user.get("previews_used", 0)
+    preview_limit = current_user.get("previews_limit", 3)
+    
+    if user_previews >= preview_limit:
+        # User has exceeded preview limit - trigger blacklist
+        await handle_preview_limit_exceeded(current_user["id"])
+        raise HTTPException(
+            status_code=403, 
+            detail="Лимит предварительных просмотров исчерпан. Доступ заблокирован на 15 дней."
+        )
+    
+    # Increment preview counter
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$inc": {"previews_used": 1}}
+    )
+    
+    # Log preview access
+    access_record = MediaAccess(
+        user_id=current_user["id"],
+        media_user_id=media_user_id,
+        access_type="preview"
+    )
+    await db.media_access.insert_one(access_record.dict())
+    
+    previews_remaining = preview_limit - user_previews - 1
+    
+    return {
+        "access_type": "preview",
+        "message": f"Предварительный просмотр. Осталось: {previews_remaining}/3",
+        "previews_remaining": previews_remaining,
+        "data": {
+            "nickname": media_user["nickname"],
+            "channel_link": media_user["channel_link"][:20] + "..." if len(media_user["channel_link"]) > 20 else media_user["channel_link"],
+            "vk_link": media_user["vk_link"][:20] + "..." if len(media_user["vk_link"]) > 20 else media_user["vk_link"],
+            "preview_note": "Это предварительный просмотр. Для полного доступа приобретите платный аккаунт."
+        }
+    }
 
 # Shop endpoints
 @api_router.get("/shop/items")
