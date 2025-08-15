@@ -1825,38 +1825,126 @@ const AdminPage = () => {
           <TabsContent value="applications" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Заявки на регистрацию</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <CardTitle>Заявки на регистрацию</CardTitle>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    {/* Filter by Status */}
+                    <Select value={applicationFilter} onValueChange={setApplicationFilter}>
+                      <SelectTrigger className="w-full sm:w-40">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все статусы</SelectItem>
+                        <SelectItem value="pending">Ожидание</SelectItem>
+                        <SelectItem value="approved">Одобрено</SelectItem>
+                        <SelectItem value="rejected">Отклонено</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Sort */}
+                    <div className="flex space-x-1">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Дата</SelectItem>
+                          <SelectItem value="name">Имя</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      >
+                        {sortOrder === 'desc' ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {applications.filter(app => app.status === 'pending').length === 0 ? (
-                  <div className="text-center text-gray-500">Нет новых заявок</div>
-                ) : (
-                  applications.filter(app => app.status === 'pending').map((app) => (
-                    <div key={app.id} className="border rounded-lg p-4 mb-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h3 className="font-semibold">{app.data.nickname}</h3>
-                          <p><strong>Логин:</strong> {app.data.login}</p>
-                          <p><strong>VK:</strong> <a href={app.data.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
-                          <p><strong>Канал:</strong> <a href={app.data.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600">Ссылка</a></p>
-                        </div>
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex space-x-2">
-                            <Button onClick={() => handleApplicationAction(app.id, 'approve', 0)}>
-                              Одобрить (Бесплатное)
-                            </Button>
-                            <Button onClick={() => handleApplicationAction(app.id, 'approve', 1)}>
-                              Одобрить (Платное)
-                            </Button>
+                {(() => {
+                  const filteredApps = filterApplications(applications);
+                  const paginatedApps = paginateData(filteredApps, currentPage.applications);
+                  
+                  if (paginatedApps.totalItems === 0) {
+                    return <div className="text-center text-gray-500 py-8">Нет заявок для отображения</div>;
+                  }
+                  
+                  return (
+                    <>
+                      <div className="space-y-4">
+                        {paginatedApps.data.map((app) => (
+                          <div key={app.id} className="border rounded-lg p-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <h3 className="font-semibold">{app.data.nickname}</h3>
+                                  <Badge variant={
+                                    app.status === 'pending' ? 'secondary' :
+                                    app.status === 'approved' ? 'default' : 'destructive'
+                                  }>
+                                    {app.status === 'pending' ? 'Ожидание' :
+                                     app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <p><strong>Логин:</strong> {app.data.login}</p>
+                                  <p><strong>VK:</strong> <a href={app.data.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ссылка</a></p>
+                                  <p><strong>Канал:</strong> <a href={app.data.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ссылка</a></p>
+                                  <p><strong>Дата подачи:</strong> {new Date(app.created_at).toLocaleString('ru-RU')}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col justify-center space-y-2">
+                                {app.status === 'pending' && (
+                                  <>
+                                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => handleApplicationAction(app.id, 'approve', 0)}
+                                        className="flex-1"
+                                      >
+                                        Одобрить (Бесплатное)
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => handleApplicationAction(app.id, 'approve', 1)}
+                                        className="flex-1"
+                                      >
+                                        Одобрить (Платное)
+                                      </Button>
+                                    </div>
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm" 
+                                      onClick={() => handleApplicationAction(app.id, 'reject')}
+                                    >
+                                      Отклонить
+                                    </Button>
+                                  </>
+                                )}
+                                {app.status !== 'pending' && (
+                                  <div className="text-sm text-gray-500">
+                                    Обработано: {new Date(app.reviewed_at || app.created_at).toLocaleString('ru-RU')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <Button variant="destructive" onClick={() => handleApplicationAction(app.id, 'reject')}>
-                            Отклонить
-                          </Button>
-                        </div>
+                        ))}
                       </div>
-                    </div>
-                  ))
-                )}
+                      
+                      <PaginationControls
+                        currentPageNum={currentPage.applications}
+                        totalPages={paginatedApps.totalPages}
+                        totalItems={paginatedApps.totalItems}
+                        onPageChange={(page) => changePage('applications', page)}
+                      />
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
