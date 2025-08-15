@@ -15,3 +15,4 @@ python-jose>=3.3.0
 requests>=2.31.0
 cryptography>=42.0.8
 deprecated>=1.2.18
+wrapt>=1.17.3
