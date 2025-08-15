@@ -532,7 +532,7 @@ class AdminFunctionsTester:
         
         # Create test user
         if not self.create_test_user():
-            print("❌ Failed to create test user. Some tests may be limited.")
+            print("❌ Failed to get test user. Some tests may be limited.")
         
         # Run admin function tests
         self.test_admin_authorization_required()
