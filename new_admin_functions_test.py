@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://backend-checker.preview.emergentagent.com/api"
+BASE_URL = "http://localhost:8001/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class NewAdminFunctionsTester:
