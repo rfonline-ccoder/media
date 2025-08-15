@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://content-rating.preview.emergentagent.com/api"
+BASE_URL = "https://preview-tracker.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class PreviewSystemTester:
