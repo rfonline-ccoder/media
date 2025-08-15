@@ -2221,10 +2221,170 @@ const AdminPage = () => {
           <TabsContent value="users" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Управление пользователями</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <CardTitle>Управление пользователями</CardTitle>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        placeholder="Поиск по имени/логину..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="pl-10 w-full sm:w-48"
+                      />
+                    </div>
+                    
+                    {/* Sort */}
+                    <div className="flex space-x-1">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Дата</SelectItem>
+                          <SelectItem value="name">Имя</SelectItem>
+                          <SelectItem value="balance">Баланс</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      >
+                        {sortOrder === 'desc' ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {users.map((userItem) => (
+                {(() => {
+                  const filteredUsers = filterUsers(users);
+                  const paginatedUsers = paginateData(filteredUsers, currentPage.users);
+                  
+                  if (paginatedUsers.totalItems === 0) {
+                    return <div className="text-center text-gray-500 py-8">Пользователи не найдены</div>;
+                  }
+                  
+                  return (
+                    <>
+                      <div className="space-y-4">
+                        {paginatedUsers.data.map((userItem) => (
+                          <div key={userItem.id} className={`border rounded-lg p-4 transition-all ${!userItem.is_approved ? 'bg-red-50 border-red-200' : userItem.warnings >= 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-white hover:shadow-md'}`}>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                              <div>
+                                <div className="flex items-center space-x-2 mb-3">
+                                  <h3 className="font-semibold">{userItem.nickname}</h3>
+                                  {!userItem.is_approved && <Badge variant="destructive">Заблокирован</Badge>}
+                                  {userItem.warnings >= 2 && userItem.is_approved && <Badge variant="secondary">⚠️ Опасная зона</Badge>}
+                                  {userItem.admin_level >= 1 && <Badge variant="outline">Админ</Badge>}
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <p><strong>Логин:</strong> {userItem.login}</p>
+                                  <div className="flex items-center space-x-2">
+                                    <Coins className="h-4 w-4 text-yellow-600" />
+                                    <span><strong>Баланс:</strong> {userItem.balance?.toLocaleString() || 0} MC</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <AlertTriangle className={`h-4 w-4 ${userItem.warnings >= 2 ? 'text-red-600' : 'text-gray-400'}`} />
+                                    <span className={userItem.warnings >= 2 ? 'text-red-600 font-semibold' : ''}>
+                                      <strong>Предупреждения:</strong> {userItem.warnings || 0}/3
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <div className="space-y-2 text-sm">
+                                  <div>
+                                    <strong>Статус:</strong> 
+                                    <Badge variant={userItem.is_approved ? 'default' : 'destructive'} className="ml-2">
+                                      {userItem.is_approved ? 'Одобрен' : 'Заблокирован'}
+                                    </Badge>
+                                  </div>
+                                  <div>
+                                    <strong>Тип медиа:</strong>
+                                    <Badge variant={userItem.media_type === 1 ? 'default' : 'secondary'} className="ml-2">
+                                      {userItem.media_type === 1 ? '💎 Платное' : '🆓 Бесплатное'}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex space-x-1 mt-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const comment = prompt("Комментарий для пользователя (необязательно):");
+                                        if (comment !== null) {
+                                          handleMediaTypeChange(userItem.id, userItem.media_type === 1 ? 0 : 1, comment);
+                                        }
+                                      }}
+                                    >
+                                      {userItem.media_type === 1 ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+                                    </Button>
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Регистрация: {new Date(userItem.created_at || Date.now()).toLocaleString('ru-RU')}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label htmlFor={`balance-${userItem.id}`} className="text-xs">MC</Label>
+                                    <Input
+                                      id={`balance-${userItem.id}`}
+                                      type="number"
+                                      placeholder="±MC"
+                                      className="text-xs"
+                                    />
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const amount = document.getElementById(`balance-${userItem.id}`)?.value;
+                                      if (amount) {
+                                        handleUserAction(userItem.id, 'balance', parseInt(amount));
+                                        document.getElementById(`balance-${userItem.id}`).value = '';
+                                      }
+                                    }}
+                                  >
+                                    Изменить баланс
+                                  </Button>
+                                </div>
+                                
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => {
+                                    if (confirm(`Выдать предупреждение пользователю ${userItem.nickname}?`)) {
+                                      handleUserAction(userItem.id, 'warning');
+                                    }
+                                  }}
+                                >
+                                  ⚠️ Предупреждение
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <PaginationControls
+                        currentPageNum={currentPage.users}
+                        totalPages={paginatedUsers.totalPages}
+                        totalItems={paginatedUsers.totalItems}
+                        onPageChange={(page) => changePage('users', page)}
+                      />
+                    </>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
                   <div key={userItem.id} className={`border rounded-lg p-4 mb-4 ${!userItem.is_approved ? 'bg-red-50 border-red-200' : userItem.warnings >= 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
