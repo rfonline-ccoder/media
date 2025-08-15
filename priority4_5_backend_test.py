@@ -165,8 +165,9 @@ class Priority45Tester:
         
         try:
             # Test 1: Submit Rating (POST /api/ratings)
-            # Note: user_id is set automatically from authenticated user
+            # Note: user_id will be overridden by the backend from authenticated user
             rating_data = {
+                "user_id": "dummy",  # This will be overridden by backend
                 "rated_user_id": self.test_user_id,
                 "rating": 5,
                 "comment": "Отличный контент! Тестовая оценка."
