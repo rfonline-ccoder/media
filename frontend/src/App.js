@@ -1504,14 +1504,24 @@ const AdminPage = () => {
                           ))}
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 mb-2">
                         <Input placeholder="Комментарий..." id={`comment-${report.id}`} className="flex-1" />
+                        <Input 
+                          placeholder="MC (авто)" 
+                          id={`mc-${report.id}`} 
+                          type="number" 
+                          className="w-24"
+                        />
                         <Button onClick={() => {
                           const comment = document.getElementById(`comment-${report.id}`).value;
-                          handleReportApprove(report.id, comment);
+                          const customMc = document.getElementById(`mc-${report.id}`).value;
+                          handleReportApprove(report.id, customMc ? parseInt(customMc) : null, comment);
                         }}>
                           Одобрить
                         </Button>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        💡 Оставьте поле MC пустым для автоматического расчета ({Math.max(10, report.links.reduce((sum, link) => sum + (link.views || 0), 0) / 100)} MC)
                       </div>
                     </div>
                   ))
