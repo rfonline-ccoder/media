@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-BASE_URL = "https://db-setup-project.preview.emergentagent.com/api"
+BASE_URL = "https://backend-check-app.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class MySQLMigrationTester:
