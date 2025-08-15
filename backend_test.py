@@ -578,7 +578,7 @@ class BackendTester:
             response = self.session.post(f"{BASE_URL}/reports", json=valid_data)
             if response.status_code == 200:
                 result = response.json()
-                if "успешно" in result.get("message", "").lower():
+                if "successfully" in result.get("message", "").lower() or "успешно" in result.get("message", "").lower():
                     self.log_test("Report URL Validation (Valid URLs)", True, "Valid URLs accepted successfully")
                 else:
                     self.log_test("Report URL Validation (Valid URLs)", False, f"Unexpected response: {result}")
