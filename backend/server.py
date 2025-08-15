@@ -736,7 +736,8 @@ async def change_user_media_type(user_id: str, media_type_data: MediaTypeChange,
     await db.notifications.insert_one(notification)
     
     type_names = {0: "Бесплатное", 1: "Платное"}
-    return {"message": f"Тип медиа пользователя {user['nickname']} изменен с '{type_names[old_type]}' на '{type_names[new_type]}'. Пользователь уведомлен."}
+    user_nickname = user.get('nickname', f'User {user_id[:8]}')
+    return {"message": f"Тип медиа пользователя {user_nickname} изменен с '{type_names[old_type]}' на '{type_names[new_type]}'. Пользователь уведомлен."}
 
 @api_router.get("/notifications")
 async def get_notifications(current_user: dict = Depends(get_current_user)):
