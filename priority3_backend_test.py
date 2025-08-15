@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://media-manager-9.preview.emergentagent.com/api"
+BASE_URL = "https://request-tracker-11.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class Priority3BackendTester:

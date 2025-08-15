@@ -13,7 +13,7 @@ from datetime import datetime
 from io import StringIO
 
 # Configuration
-BASE_URL = "https://media-manager-9.preview.emergentagent.com/api"
+BASE_URL = "https://request-tracker-11.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class Priority45Tester:

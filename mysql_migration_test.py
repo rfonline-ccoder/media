@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-BASE_URL = "https://media-manager-9.preview.emergentagent.com/api"
+BASE_URL = "https://request-tracker-11.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class MySQLMigrationTester:
