@@ -163,9 +163,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @api_router.post("/register")
 async def register(registration: RegistrationRequest):
     # Check if login already exists
-    existing = await db.users.find_one({"login": registration.login})
-    if existing:
-        raise HTTPException(status_code=400, detail="Login already exists")
+    existing_login = await db.users.find_one({"login": registration.login})
+    if existing_login:
+        raise HTTPException(status_code=400, detail="Логин уже занят")
+    
+    # Check if nickname already exists
+    existing_nickname = await db.users.find_one({"nickname": registration.nickname})
+    if existing_nickname:
+        raise HTTPException(status_code=400, detail="Никнейм уже занят")
     
     # Create registration application
     application = {
@@ -177,7 +182,7 @@ async def register(registration: RegistrationRequest):
     }
     
     await db.applications.insert_one(application)
-    return {"message": "Registration application submitted. Please wait for approval."}
+    return {"message": "Заявка на регистрацию отправлена! Ожидайте одобрения администратора."}
 
 @api_router.post("/login")
 async def login(login_data: LoginRequest):
