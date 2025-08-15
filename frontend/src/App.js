@@ -2080,13 +2080,14 @@ const AdminPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="stats">📊 Статистика</TabsTrigger>
             <TabsTrigger value="applications">Заявки ({applications.filter(app => app.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="purchases">Покупки ({purchases.filter(p => p.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="reports">Отчеты ({reports.filter(r => r.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="users">Пользователи ({users.length})</TabsTrigger>
             <TabsTrigger value="shop">Магазин</TabsTrigger>
+            <TabsTrigger value="blacklist">🚫 Черный список</TabsTrigger>
           </TabsList>
 
           {/* Statistics Dashboard Tab */}
