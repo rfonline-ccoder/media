@@ -635,6 +635,34 @@ async def get_my_reports(current_user: dict = Depends(get_current_user), db: Ses
         "admin_comment": report.admin_comment
     } for report in reports]
 
+@api_router.get("/stats")
+async def get_stats(db: Session = Depends(get_db)):
+    """Получить общую статистику платформы"""
+    try:
+        total_users = db.query(User).count()
+        approved_users = db.query(User).filter(User.is_approved == True).count()
+        total_reports = db.query(Report).count()
+        approved_reports = db.query(Report).filter(Report.status == "approved").count()
+        
+        return {
+            "total_users": total_users,
+            "approved_users": approved_users,
+            "pending_users": total_users - approved_users,
+            "total_reports": total_reports,
+            "approved_reports": approved_reports,
+            "pending_reports": total_reports - approved_reports
+        }
+    except Exception as e:
+        # В случае ошибки возвращаем дефолтные значения
+        return {
+            "total_users": 0,
+            "approved_users": 0,
+            "pending_users": 0,
+            "total_reports": 0,
+            "approved_reports": 0,
+            "pending_reports": 0
+        }
+
 # Admin endpoints
 @api_router.get("/admin/applications")
 async def get_applications(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
