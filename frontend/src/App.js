@@ -689,42 +689,57 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-xl">
           <CardHeader>
-            <CardTitle>История отчетов</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <FileText className="h-6 w-6 text-blue-600" />
+              <span>📝 История ваших отчетов</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {reports.length === 0 ? (
-              <div className="text-center text-gray-500">Отчетов пока нет</div>
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">📄</div>
+                <div className="text-gray-500 text-lg">Отчетов пока нет</div>
+                <Button className="mt-4" asChild>
+                  <a href="/reports">Подать первый отчет</a>
+                </Button>
+              </div>
             ) : (
               <div className="space-y-4">
                 {reports.map((report) => (
-                  <div key={report.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-sm text-gray-500">
-                        {new Date(report.created_at).toLocaleString('ru-RU')}
+                  <div key={report.id} className={`border rounded-lg p-4 ${
+                    report.status === 'approved' ? 'bg-green-50 border-green-200' :
+                    report.status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
+                  }`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="text-sm text-gray-600">
+                        📅 {new Date(report.created_at).toLocaleString('ru-RU')}
                       </div>
                       <Badge variant={
                         report.status === 'approved' ? 'default' :
                         report.status === 'rejected' ? 'destructive' : 'secondary'
                       }>
-                        {report.status === 'approved' ? 'Одобрен' :
-                         report.status === 'rejected' ? 'Отклонен' : 'На рассмотрении'}
+                        {report.status === 'approved' ? '✅ Одобрен' :
+                         report.status === 'rejected' ? '❌ Отклонен' : '⏳ На рассмотрении'}
                       </Badge>
                     </div>
                     <div className="space-y-2">
                       {report.links.map((link, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            {link.url}
+                        <div key={index} className="flex justify-between items-center bg-white rounded p-2">
+                          <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex-1 truncate">
+                            🔗 {link.url}
                           </a>
-                          <span className="text-sm text-gray-600">{link.views} просмотров</span>
+                          <span className="text-sm font-semibold text-gray-600 ml-4">
+                            👁️ {link.views.toLocaleString()} просмотров
+                          </span>
                         </div>
                       ))}
                     </div>
                     {report.admin_comment && (
-                      <div className="mt-2 text-sm text-gray-600">
-                        <strong>Комментарий:</strong> {report.admin_comment}
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <div className="text-sm font-semibold text-blue-800 mb-1">💬 Комментарий администратора:</div>
+                        <div className="text-sm text-blue-700">{report.admin_comment}</div>
                       </div>
                     )}
                   </div>
