@@ -509,14 +509,14 @@ const MediaListPage = () => {
 
 // Profile Page
 const ProfilePage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoading) {
       fetchReports();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
   const fetchReports = async () => {
     try {
@@ -526,6 +526,14 @@ const ProfilePage = () => {
       console.error('Failed to fetch reports:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-xl">Загрузка...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
