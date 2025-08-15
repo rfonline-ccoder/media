@@ -2066,6 +2066,49 @@ const AdminPage = () => {
     setShowWarningModal(true);
   };
 
+  // Функция открытия модального окна чрезвычайного состояния
+  const openEmergencyStateModal = (user) => {
+    setEmergencyUser(user);
+    setEmergencyDays(15);
+    setEmergencyReason('');
+    setShowEmergencyStateModal(true);
+  };
+
+  // Функция снятия с медиа (удаления пользователя)
+  const handleRemoveFromMedia = async (user) => {
+    if (!confirm(`Вы уверены, что хотите полностью удалить пользователя "${user.nickname}" из системы? Это действие необратимо!`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/admin/users/${user.id}/remove-from-media`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "🗑️ Пользователь удален",
+          description: result.message,
+        });
+        fetchAdminData();
+      } else {
+        throw new Error('Failed to remove user');
+      }
+    } catch (error) {
+      console.error('Remove user failed:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить пользователя",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Функция отправки предупреждения с причиной
   const submitWarning = async () => {
     if (!warningReason.trim()) {
