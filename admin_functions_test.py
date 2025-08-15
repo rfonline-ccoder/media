@@ -64,61 +64,33 @@ class AdminFunctionsTester:
         return False
     
     def create_test_user(self):
-        """Create a test user for admin function testing"""
-        print("\n=== Creating Test User ===")
+        """Get an existing test user for admin function testing"""
+        print("\n=== Getting Test User ===")
         
         try:
-            # First create a registration application
-            timestamp = datetime.now().strftime('%H%M%S')
-            test_data = {
-                "nickname": f"testuser_{timestamp}",
-                "login": f"testlogin_{timestamp}",
-                "password": "testpassword123",
-                "vk_link": "https://vk.com/testuser",
-                "channel_link": "https://t.me/testchannel"
-            }
-            
-            # Remove auth header temporarily for registration
-            auth_header = self.session.headers.get("Authorization")
-            if auth_header:
-                del self.session.headers["Authorization"]
-            
-            response = self.session.post(f"{BASE_URL}/register", json=test_data)
-            
-            # Restore auth header
-            if auth_header:
-                self.session.headers["Authorization"] = auth_header
-            
-            if response.status_code == 200:
-                result = response.json()
-                app_id = result.get("id")
+            # Get existing users
+            users_response = self.session.get(f"{BASE_URL}/admin/users")
+            if users_response.status_code == 200:
+                users = users_response.json()
                 
-                if app_id:
-                    # Approve the application to create the user
-                    approve_response = self.session.post(f"{BASE_URL}/admin/applications/{app_id}/approve")
-                    
-                    if approve_response.status_code == 200:
-                        # Get the created user
-                        users_response = self.session.get(f"{BASE_URL}/admin/users")
-                        if users_response.status_code == 200:
-                            users = users_response.json()
-                            test_user = next((u for u in users if u.get("login") == test_data["login"]), None)
-                            
-                            if test_user:
-                                self.test_user_id = test_user["id"]
-                                self.log_test("Test User Creation", True, f"Created test user: {test_user['nickname']} (ID: {self.test_user_id})")
-                                return True
-                            else:
-                                self.log_test("Test User Creation", False, "User not found after approval")
-                    else:
-                        self.log_test("Test User Creation", False, f"Failed to approve application: {approve_response.status_code}")
+                # Find a non-admin test user
+                test_user = None
+                for user in users:
+                    if user.get("admin_level", 0) == 0 and user.get("login", "").startswith("testuser"):
+                        test_user = user
+                        break
+                
+                if test_user:
+                    self.test_user_id = test_user["id"]
+                    self.log_test("Test User Selection", True, f"Selected test user: {test_user['nickname']} (ID: {self.test_user_id})")
+                    return True
                 else:
-                    self.log_test("Test User Creation", False, "No application ID in response", result)
+                    self.log_test("Test User Selection", False, "No suitable test user found")
             else:
-                self.log_test("Test User Creation", False, f"Registration failed: {response.status_code} - {response.text}")
+                self.log_test("Test User Selection", False, f"Failed to get users: {users_response.status_code}")
                 
         except Exception as e:
-            self.log_test("Test User Creation", False, f"Exception: {str(e)}")
+            self.log_test("Test User Selection", False, f"Exception: {str(e)}")
         
         return False
     
