@@ -755,6 +755,30 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
     
     return {"message": "Notification marked as read"}
 
+@api_router.post("/admin/users/{user_id}/warning")
+async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_warnings = user.get("warnings", 0) + 1
+    if new_warnings >= 3:
+        # Block user
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"warnings": new_warnings, "is_approved": False}}
+        )
+        return {"message": "User blocked (3 warnings reached)"}
+    else:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"warnings": new_warnings}}
+        )
+        return {"message": f"Warning added. Total warnings: {new_warnings}"}
+
 @api_router.get("/admin/blacklist")
 async def get_blacklist(current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
