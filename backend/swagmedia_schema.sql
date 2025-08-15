@@ -23,9 +23,14 @@ CREATE TABLE users (
 	registration_ip VARCHAR(45), 
 	created_at DATETIME, 
 	PRIMARY KEY (id)
-)
+);
 
-;
+-- Indexes for users table
+CREATE UNIQUE INDEX ix_users_login ON users (login);
+CREATE UNIQUE INDEX ix_users_nickname ON users (nickname);
+CREATE INDEX ix_users_is_approved ON users (is_approved);
+CREATE INDEX ix_users_media_type ON users (media_type);
+CREATE INDEX ix_users_blacklist_until ON users (blacklist_until);
 
 
 CREATE TABLE applications (
@@ -38,9 +43,11 @@ CREATE TABLE applications (
 	status VARCHAR(20), 
 	created_at DATETIME, 
 	PRIMARY KEY (id)
-)
+);
 
-;
+-- Indexes for applications table
+CREATE INDEX ix_applications_status ON applications (status);
+CREATE INDEX ix_applications_created_at ON applications (created_at);
 
 
 CREATE TABLE shop_items (
@@ -52,9 +59,11 @@ CREATE TABLE shop_items (
 	image_url VARCHAR(500), 
 	created_at DATETIME, 
 	PRIMARY KEY (id)
-)
+);
 
-;
+-- Indexes for shop_items table
+CREATE INDEX ix_shop_items_category ON shop_items (category);
+CREATE INDEX ix_shop_items_price ON shop_items (price);
 
 
 CREATE TABLE purchases (
@@ -70,9 +79,12 @@ CREATE TABLE purchases (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id), 
 	FOREIGN KEY(item_id) REFERENCES shop_items (id)
-)
+);
 
-;
+-- Indexes for purchases table
+CREATE INDEX ix_purchases_user_id ON purchases (user_id);
+CREATE INDEX ix_purchases_status ON purchases (status);
+CREATE INDEX ix_purchases_created_at ON purchases (created_at);
 
 
 CREATE TABLE reports (
@@ -84,9 +96,12 @@ CREATE TABLE reports (
 	admin_comment TEXT, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id)
-)
+);
 
-;
+-- Indexes for reports table
+CREATE INDEX ix_reports_user_id ON reports (user_id);
+CREATE INDEX ix_reports_status ON reports (status);
+CREATE INDEX ix_reports_created_at ON reports (created_at);
 
 
 CREATE TABLE user_ratings (
@@ -99,9 +114,13 @@ CREATE TABLE user_ratings (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id), 
 	FOREIGN KEY(rated_user_id) REFERENCES users (id)
-)
+);
 
-;
+-- Indexes for user_ratings table
+CREATE INDEX ix_user_ratings_user_id ON user_ratings (user_id);
+CREATE INDEX ix_user_ratings_rated_user_id ON user_ratings (rated_user_id);
+CREATE INDEX ix_user_ratings_rating ON user_ratings (rating);
+CREATE INDEX ix_user_ratings_created_at ON user_ratings (created_at);
 
 
 CREATE TABLE ip_blacklist (
@@ -112,9 +131,12 @@ CREATE TABLE ip_blacklist (
 	reason VARCHAR(255), 
 	created_at DATETIME, 
 	PRIMARY KEY (id)
-)
+);
 
-;
+-- Indexes for ip_blacklist table
+CREATE INDEX ix_ip_blacklist_ip_address ON ip_blacklist (ip_address);
+CREATE INDEX ix_ip_blacklist_blacklist_until ON ip_blacklist (blacklist_until);
+CREATE INDEX ix_ip_blacklist_created_at ON ip_blacklist (created_at);
 
 
 CREATE TABLE media_access (
@@ -125,9 +147,13 @@ CREATE TABLE media_access (
 	accessed_at DATETIME, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id)
-)
+);
 
-;
+-- Indexes for media_access table
+CREATE INDEX ix_media_access_user_id ON media_access (user_id);
+CREATE INDEX ix_media_access_media_user_id ON media_access (media_user_id);
+CREATE INDEX ix_media_access_access_type ON media_access (access_type);
+CREATE INDEX ix_media_access_accessed_at ON media_access (accessed_at);
 
 
 CREATE TABLE notifications (
@@ -140,7 +166,27 @@ CREATE TABLE notifications (
 	created_at DATETIME, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id)
-)
+);
 
-;
+-- Indexes for notifications table
+CREATE INDEX ix_notifications_user_id ON notifications (user_id);
+CREATE INDEX ix_notifications_read ON notifications (`read`);
+CREATE INDEX ix_notifications_created_at ON notifications (created_at);
+CREATE INDEX ix_notifications_type ON notifications (type);
+
+-- Insert default admin user
+INSERT INTO users (id, login, password, nickname, vk_link, channel_link, balance, admin_level, is_approved, media_type) 
+VALUES ('admin-id', 'admin', 'admin123', 'Administrator', 'https://vk.com/admin', 'https://t.me/admin', 10000, 1, 1, 1);
+
+-- Insert default shop items
+INSERT INTO shop_items (id, name, description, price, category) VALUES 
+('1', 'VIP статус', 'Получите VIP статус на месяц', 500, 'Премиум'),
+('2', 'Премиум аккаунт', 'Доступ к премиум функциям', 1000, 'Премиум'),
+('3', 'Золотой значок', 'Эксклюзивный золотой значок', 750, 'Премиум'),
+('4', 'Ускорение отчетов', 'Быстрая обработка ваших отчетов', 300, 'Буст'),
+('5', 'Двойные медиа-коины', 'Удвоение получаемых MC на неделю', 400, 'Буст'),
+('6', 'Приоритет в очереди', 'Приоритетная обработка заявок', 350, 'Буст'),
+('7', 'Кастомная тема', 'Персональная тема интерфейса', 600, 'Дизайн'),
+('8', 'Анимированный аватар', 'Возможность загрузки GIF аватара', 450, 'Дизайн'),
+('9', 'Уникальная рамка', 'Эксклюзивная рамка профиля', 550, 'Дизайн');
 
