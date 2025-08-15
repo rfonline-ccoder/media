@@ -456,10 +456,14 @@ class BackendTester:
                             self.log_test("Shop Item Image Verification", False, "Failed to verify image update")
                     else:
                         self.log_test("Shop Item Image Update", False, f"Image update failed: {update_response.status_code} - {update_response.text}")
+                        # Skip verification test if update failed
+                        self.log_test("Shop Item Image Verification", False, "Skipped due to update failure")
                     
-                    # Test 3: Invalid image URL validation
+                    # Test 3: Invalid image URL validation (use a different item to avoid conflicts)
+                    test_item_2 = items[1] if len(items) > 1 else items[0]
+                    item_id_2 = test_item_2["id"]
                     invalid_image_data = {"image_url": "not-a-valid-url"}
-                    invalid_response = self.session.post(f"{BASE_URL}/admin/shop/item/{item_id}/image", json=invalid_image_data)
+                    invalid_response = self.session.post(f"{BASE_URL}/admin/shop/item/{item_id_2}/image", json=invalid_image_data)
                     
                     if invalid_response.status_code == 400:
                         self.log_test("Shop Image URL Validation", True, "Invalid image URL correctly rejected")
