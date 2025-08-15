@@ -178,6 +178,21 @@ class UserRating(BaseModel):
     comment: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class IPBlacklist(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ip_address: str
+    vk_link: str  # VK link that caused the blacklist
+    blacklist_until: datetime
+    reason: str = Field(default="User exceeded preview limit")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MediaAccess(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    media_user_id: str  # User whose media is being accessed
+    access_type: str  # "preview" or "full"
+    accessed_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Helper functions
 def get_cache(key):
     """Get cached value if not expired"""
