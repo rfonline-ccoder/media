@@ -141,6 +141,10 @@ class ApplicationResponse(BaseModel):
     status: str
     created_at: datetime
 
+class ApproveReportRequest(BaseModel):
+    comment: str = ""
+    mc_reward: Optional[int] = None
+
 # Helper functions
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
