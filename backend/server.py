@@ -233,6 +233,13 @@ class ItemImageUpdate(BaseModel):
             raise ValueError('URL изображения должен начинаться с http:// или https://')
         return v
 
+class WarningRequest(BaseModel):
+    reason: str
+
+class EmergencyStateRequest(BaseModel):
+    days: int = Field(ge=1, le=365)  # От 1 до 365 дней
+    reason: str
+
 # Helper functions
 def get_cache(key):
     """Get cached value if not expired"""
