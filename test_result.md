@@ -131,6 +131,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Shop API returns 9 items correctly. Initialization endpoint working."
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: Shop API working perfectly. Returns exactly 9 items in 3 categories (Премиум, Буст, Дизайн) with proper JSON structure including id, name, description, price, category fields. API response format is correct for frontend consumption. If frontend shows 0 items, the issue is in frontend code, not backend API."
         
   - task: "Statistics API"
     implemented: true
