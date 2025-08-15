@@ -107,63 +107,78 @@ user_problem_statement: "Реализация Priority 2 для SwagMedia: 1) С
 backend:
   - task: "Media Type Switching in Admin"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлен endpoint для смены типа медиа пользователя с уведомлениями. Endpoint: POST /api/admin/users/{user_id}/change-media-type"
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Endpoint POST /api/admin/users/{user_id}/change-media-type работает корректно. Тип медиа пользователя успешно изменяется, уведомления создаются в БД (коллекция notifications). Проверена смена с типа 0 на 1 и обратно."
         
   - task: "Form Validation Backend"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлены валидаторы для паролей (мин 8 символов), VK ссылок, ссылок каналов, уникальности никнеймов и валидация URL в отчетах"
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Все валидации работают корректно. Пароли < 8 символов отклоняются, VK ссылки должны содержать vk.com, ссылки каналов проверяются на t.me/youtube.com/instagram.com, уникальность логинов и никнеймов работает. URL валидация в отчетах функционирует."
         
   - task: "Custom MC Rewards for Reports"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Изменен endpoint одобрения отчетов для поддержки кастомной суммы MC. Принимает ApproveReportRequest с optional mc_reward"
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Endpoint POST /api/admin/reports/{report_id}/approve работает с кастомной суммой MC. При указании mc_reward начисляется указанная сумма, без указания - автоматический расчет. MC корректно добавляется на баланс пользователя."
         
   - task: "Shop Item Images Management"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлены endpoints для управления изображениями товаров: POST /api/admin/shop/item/{item_id}/image и GET /api/admin/shop/items"
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Оба endpoint работают корректно. GET /api/admin/shop/items возвращает список товаров для админа, POST /api/admin/shop/item/{item_id}/image обновляет изображение товара с валидацией URL (должен начинаться с http/https)."
         
   - task: "Notifications System"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлены endpoints для системы уведомлений: GET /api/notifications и POST /api/notifications/{id}/read"
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система уведомлений работает полностью. GET /api/notifications возвращает уведомления пользователя, POST /api/notifications/{id}/read помечает уведомление как прочитанное. Уведомления создаются при смене типа медиа. Добавлен недостающий endpoint для пометки как прочитанное."
 
 frontend:
   - task: "Form Validation Frontend"
