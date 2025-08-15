@@ -713,7 +713,7 @@ async def get_advanced_stats():
         "balance_ranges": balance_ranges
     }
     
-    set_cache("advanced_stats", stats, 600)
+    set_cache("advanced_stats", stats, CACHE_TTL_ADVANCED)
     return stats
 
 # Initialize shop items
