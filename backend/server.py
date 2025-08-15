@@ -845,7 +845,7 @@ async def give_user_warning(user_id: str, warning_data: WarningRequest, admin_us
         
         # Добавляем IP в черный список, если есть
         if user.registration_ip:
-            add_ip_to_blacklist(user.registration_ip, user.vk_link, db, days=30, reason="3 предупреждения")
+            add_ip_to_blacklist(user.registration_ip, user.vk_link, db, days=30, reason="3 warnings")
     
     # Создаем уведомление пользователю
     if auto_blocked:
