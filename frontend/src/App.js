@@ -1580,6 +1580,36 @@ const AdminPage = () => {
                             +/- MC
                           </Button>
                         </div>
+                        
+                        {/* Media Type Toggle */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">Тип:</span>
+                          <Button
+                            size="sm"
+                            variant={userItem.media_type === 1 ? "default" : "outline"}
+                            onClick={() => {
+                              const newType = userItem.media_type === 1 ? 0 : 1;
+                              const comment = window.prompt(`Смена типа медиа для ${userItem.nickname} на ${newType === 1 ? 'Платное' : 'Бесплатное'}.\nКомментарий (необязательно):`, '');
+                              if (comment !== null) {
+                                handleMediaTypeChange(userItem.id, newType, comment);
+                              }
+                            }}
+                            className="flex items-center space-x-1"
+                          >
+                            {userItem.media_type === 1 ? (
+                              <>
+                                <ToggleRight className="h-4 w-4" />
+                                <span>Платное</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="h-4 w-4" />
+                                <span>Бесплатное</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        
                         {userItem.is_approved && (
                           <Button 
                             variant={userItem.warnings >= 2 ? "destructive" : "outline"}
