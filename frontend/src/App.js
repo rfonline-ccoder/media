@@ -1790,32 +1790,6 @@ const AdminPage = () => {
     }
   };
 
-  const handleMediaTypeChange = async (userId, newMediaType, comment = '') => {
-    try {
-      const userItem = users.find(u => u.id === userId);
-      const requestData = {
-        user_id: userId,
-        new_media_type: newMediaType,
-        admin_comment: comment
-      };
-      
-      await axios.post(`${API}/admin/users/${userId}/change-media-type`, requestData);
-      const typeNames = {0: "Бесплатное", 1: "Платное"};
-      toast({
-        title: "🔄 Тип медиа изменен",
-        description: `${userItem?.nickname} теперь ${typeNames[newMediaType]} медиа. Пользователь уведомлен.`,
-      });
-      fetchAdminData();
-    } catch (error) {
-      console.error('Action failed:', error);
-      toast({
-        title: "❌ Ошибка операции",
-        description: "Не удалось выполнить действие",
-        variant: "destructive",
-      });
-    }
-  };
-
   const downloadExport = async (dataType) => {
     try {
       const response = await axios.get(`${API}/admin/export/${dataType}`, {
