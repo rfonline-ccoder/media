@@ -2930,6 +2930,72 @@ const AdminPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Модальное окно для предупреждения */}
+      <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>⚠️ Выдать предупреждение</DialogTitle>
+            <DialogDescription>
+              Пользователь: {warningUser?.nickname}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="warning-reason">Причина предупреждения *</Label>
+              <Textarea
+                id="warning-reason"
+                placeholder="Укажите причину предупреждения..."
+                value={warningReason}
+                onChange={(e) => setWarningReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWarningModal(false)}>
+              Отмена
+            </Button>
+            <Button variant="destructive" onClick={submitWarning}>
+              Выдать предупреждение
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно для смены типа медиа */}
+      <Dialog open={showMediaTypeModal} onOpenChange={setShowMediaTypeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>🔄 Смена типа медиа</DialogTitle>
+            <DialogDescription>
+              Пользователь: {mediaTypeUser?.nickname}<br/>
+              Текущий тип: {mediaTypeUser?.media_type === 1 ? 'Платное' : 'Бесплатное'}<br/>
+              Новый тип: {mediaTypeUser?.media_type === 1 ? 'Бесплатное' : 'Платное'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="media-comment">Комментарий для пользователя</Label>
+              <Textarea
+                id="media-comment"
+                placeholder="Причина смены типа медиа (необязательно)..."
+                value={mediaTypeComment}
+                onChange={(e) => setMediaTypeComment(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMediaTypeModal(false)}>
+              Отмена
+            </Button>
+            <Button onClick={submitMediaTypeChange}>
+              Изменить тип
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
