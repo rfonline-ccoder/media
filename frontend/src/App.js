@@ -1035,6 +1035,7 @@ const ReportsPage = () => {
 // Admin Page
 const AdminPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
   const [applications, setApplications] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [reports, setReports] = useState([]);
@@ -1062,57 +1063,134 @@ const AdminPage = () => {
       setPurchases(purchasesRes.data || []);
       setReports(reportsRes.data || []);
       setUsers(usersRes.data || []);
+      
+      const pendingCount = (appsRes.data || []).filter(app => app.status === 'pending').length;
+      if (pendingCount > 0) {
+        toast({
+          title: "📋 Новые заявки",
+          description: `У вас ${pendingCount} новых заявок на рассмотрении`,
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
+      toast({
+        title: "❌ Ошибка загрузки",
+        description: "Не удалось загрузить данные админ панели",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
 
   const handleApplicationAction = async (appId, action, mediaType = 0) => {
     try {
+      const app = applications.find(a => a.id === appId);
       if (action === 'approve') {
         await axios.post(`${API}/admin/applications/${appId}/approve?media_type=${mediaType}`);
+        toast({
+          title: "✅ Заявка одобрена!",
+          description: `Пользователь ${app?.data?.nickname} добавлен в систему как ${mediaType === 1 ? 'платное' : 'бесплатное'} медиа`,
+        });
       } else {
         await axios.post(`${API}/admin/applications/${appId}/reject`);
+        toast({
+          title: "❌ Заявка отклонена",
+          description: `Заявка от ${app?.data?.nickname} была отклонена`,
+          variant: "destructive",
+        });
       }
       fetchAdminData();
     } catch (error) {
       console.error('Action failed:', error);
+      toast({
+        title: "❌ Ошибка операции",
+        description: "Не удалось выполнить действие",
+        variant: "destructive",
+      });
     }
   };
 
   const handlePurchaseAction = async (purchaseId, action) => {
     try {
+      const purchase = purchases.find(p => p.id === purchaseId);
       if (action === 'approve') {
         await axios.post(`${API}/admin/purchases/${purchaseId}/approve`);
+        toast({
+          title: "✅ Покупка одобрена!",
+          description: `Покупка товара "${purchase?.item_name}" пользователем ${purchase?.user_nickname} одобрена`,
+        });
       } else {
         await axios.post(`${API}/admin/purchases/${purchaseId}/reject`);
+        toast({
+          title: "❌ Покупка отклонена",
+          description: `Покупка товара "${purchase?.item_name}" была отклонена`,
+          variant: "destructive",
+        });
       }
       fetchAdminData();
     } catch (error) {
       console.error('Action failed:', error);
+      toast({
+        title: "❌ Ошибка операции",
+        description: "Не удалось выполнить действие",
+        variant: "destructive",
+      });
     }
   };
 
   const handleReportApprove = async (reportId, comment = '') => {
     try {
+      const report = reports.find(r => r.id === reportId);
       await axios.post(`${API}/admin/reports/${reportId}/approve?comment=${comment}`);
+      toast({
+        title: "✅ Отчет одобрен!",
+        description: `Отчет от ${report?.user_nickname} одобрен. MC начислены на баланс.`,
+      });
       fetchAdminData();
     } catch (error) {
       console.error('Action failed:', error);
+      toast({
+        title: "❌ Ошибка операции",
+        description: "Не удалось выполнить действие",
+        variant: "destructive",
+      });
     }
   };
 
   const handleUserAction = async (userId, action, amount = 0) => {
     try {
+      const userItem = users.find(u => u.id === userId);
       if (action === 'balance') {
         await axios.post(`${API}/admin/users/${userId}/balance?amount=${amount}`);
+        toast({
+          title: amount > 0 ? "💰 MC добавлены" : "💸 MC списаны",
+          description: `${amount > 0 ? 'Добавлено' : 'Списано'} ${Math.abs(amount)} MC пользователю ${userItem?.nickname}`,
+        });
       } else if (action === 'warning') {
-        await axios.post(`${API}/admin/users/${userId}/warning`);
+        const response = await axios.post(`${API}/admin/users/${userId}/warning`);
+        const newWarnings = (userItem?.warnings || 0) + 1;
+        
+        if (newWarnings >= 3) {
+          toast({
+            title: "🚨 Пользователь заблокирован!",
+            description: `${userItem?.nickname} получил 3-е предупреждение и был автоматически заблокирован`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "⚠️ Предупреждение выдано",
+            description: `${userItem?.nickname} получил предупреждение (${newWarnings}/3)`,
+          });
+        }
       }
       fetchAdminData();
     } catch (error) {
       console.error('Action failed:', error);
+      toast({
+        title: "❌ Ошибка операции",
+        description: "Не удалось выполнить действие",
+        variant: "destructive",
+      });
     }
   };
 
