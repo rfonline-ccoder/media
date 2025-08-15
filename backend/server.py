@@ -209,6 +209,69 @@ def set_cache(key, value, ttl_seconds=300):  # 5 minutes default
     """Set cache with TTL"""
     cache[key] = value
     cache_ttl[key] = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+
+async def check_ip_blacklist(ip_address: str):
+    """Check if IP is blacklisted"""
+    blacklist_entry = await db.ip_blacklist.find_one({
+        "ip_address": ip_address,
+        "blacklist_until": {"$gt": datetime.utcnow()}
+    })
+    return blacklist_entry is not None
+
+async def check_vk_blacklist(vk_link: str):
+    """Check if VK link is associated with blacklisted IP"""
+    user_with_vk = await db.users.find_one({
+        "vk_link": vk_link,
+        "blacklist_until": {"$gt": datetime.utcnow()}
+    })
+    return user_with_vk is not None
+
+async def add_ip_to_blacklist(ip_address: str, vk_link: str, days: int = 15):
+    """Add IP to blacklist for specified days"""
+    blacklist_entry = IPBlacklist(
+        ip_address=ip_address,
+        vk_link=vk_link,
+        blacklist_until=datetime.utcnow() + timedelta(days=days)
+    )
+    await db.ip_blacklist.insert_one(blacklist_entry.dict())
+
+async def handle_preview_limit_exceeded(user_id: str):
+    """Handle when user exceeds preview limit"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return
+    
+    # Set blacklist until 15 days from now
+    blacklist_until = datetime.utcnow() + timedelta(days=15)
+    
+    # Update user with blacklist
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "blacklist_until": blacklist_until,
+            "is_approved": False
+        }}
+    )
+    
+    # Add IP to blacklist if available
+    if user.get("registration_ip"):
+        await add_ip_to_blacklist(
+            user["registration_ip"], 
+            user["vk_link"],
+            days=15
+        )
+    
+    # Delete user data for privacy (keep basic info for blacklist tracking)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$unset": {
+            "login": "",
+            "password": "",
+            "nickname": "",
+            "channel_link": "",
+            "balance": ""
+        }}
+    )
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
