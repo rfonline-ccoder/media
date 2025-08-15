@@ -3305,6 +3305,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/ratings" element={<RatingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
           <Toaster />
