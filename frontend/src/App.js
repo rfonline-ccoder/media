@@ -752,9 +752,21 @@ const ShopPage = () => {
           </div>
         )}
 
-        {!loading && filteredItems.length === 0 && (
+        {!loading && filteredItems.length === 0 && items.length > 0 && (
           <div className="text-center text-gray-500">
-            {selectedCategory === 'all' ? 'Товаров пока нет' : 'Нет товаров в данной категории'}
+            Нет товаров в категории "{selectedCategory}"
+          </div>
+        )}
+        
+        {!loading && items.length === 0 && (
+          <div className="text-center text-gray-500">
+            Товары загружаются... Если товары не появились, обновите страницу.
+          </div>
+        )}
+        
+        {!loading && filteredItems.length > 0 && (
+          <div className="mb-4 text-center">
+            <p className="text-gray-600">Найдено товаров: {filteredItems.length} из {items.length}</p>
           </div>
         )}
       </div>
