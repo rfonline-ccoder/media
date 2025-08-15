@@ -201,15 +201,18 @@ backend:
         
   - task: "Обновленный медиа-лист с доступом"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Обновлен endpoint /media-list для поддержки авторизации и проверки доступа. Добавлен новый endpoint /media/{media_user_id}/access для системы предпросмотров с проверками лимитов и автоматической блокировкой."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Обновленный медиа-лист работает превосходно! Endpoint GET /api/media-list теперь поддерживает авторизацию и возвращает поле can_access для каждого медиа. Бесплатные пользователи имеют доступ к бесплатному контенту (can_access: true), но не к платному (can_access: false). Платные пользователи имеют доступ ко всему контенту. Endpoint POST /api/media/{media_user_id}/access корректно обрабатывает систему предпросмотров с лимитами и блокировкой."
 
   - task: "Админ управление предпросмотрами"
     implemented: true
