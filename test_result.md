@@ -105,65 +105,65 @@
 user_problem_statement: "Реализация Priority 2 для SwagMedia: 1) Смена типа медиа в админке с уведомлениями пользователям, 2) Валидация форм (пароли мин 8 символов, email форматы, уникальность никнеймов), 3) Изображения товаров по URL, 4) Кастомная сумма MC при одобрении отчетов"
 
 backend:
-  - task: "Authentication System"
+  - task: "Media Type Switching in Admin"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: false
         agent: "main"
-        comment: "JWT authentication working correctly. Admin login: admin/admin123 returns proper token and user data."
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Authentication system fully functional. Admin login (admin/admin123) works perfectly, returns valid JWT token, and protects admin routes correctly. Token validation working for all protected endpoints."
+        comment: "Добавлен endpoint для смены типа медиа пользователя с уведомлениями. Endpoint: POST /api/admin/users/{user_id}/change-media-type"
         
-  - task: "Shop API Endpoints"
+  - task: "Form Validation Backend"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: false
         agent: "main"
-        comment: "Shop API returns 9 items correctly. Initialization endpoint working."
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Shop API working perfectly. Returns exactly 9 items in 3 categories (Премиум, Буст, Дизайн) with proper JSON structure including id, name, description, price, category fields. API response format is correct for frontend consumption. If frontend shows 0 items, the issue is in frontend code, not backend API."
+        comment: "Добавлены валидаторы для паролей (мин 8 символов), VK ссылок, ссылок каналов, уникальности никнеймов и валидация URL в отчетах"
         
-  - task: "Statistics API"
+  - task: "Custom MC Rewards for Reports"
     implemented: true
-    working: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Изменен endpoint одобрения отчетов для поддержки кастомной суммы MC. Принимает ApproveReportRequest с optional mc_reward"
+        
+  - task: "Shop Item Images Management"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлены endpoints для управления изображениями товаров: POST /api/admin/shop/item/{item_id}/image и GET /api/admin/shop/items"
+        
+  - task: "Notifications System"
+    implemented: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: false
         agent: "main"
-        comment: "Statistics endpoint working: 3 media, 1,000,799 MC current balance."
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Statistics API working correctly. Returns proper JSON with total_media: 3, total_mc_current: 1,000,799, total_mc_spent: 0. All expected values confirmed."
-        
-  - task: "Admin Panel APIs"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "All admin endpoints implemented. Need to test with frontend."
-      - working: true
-        agent: "testing"
-        comment: "COMPREHENSIVE BACKEND TESTING COMPLETED: All 15 backend API tests passed (100% success rate). Authentication system working perfectly with admin/admin123 credentials and JWT tokens. Shop API returns exactly 9 items in 3 categories (Премиум, Буст, Дизайн) with proper JSON structure. Statistics API returns correct data (3 media, 1,000,799 MC). All admin endpoints (applications, purchases, reports, users) accessible and functional. Backend is fully operational and ready for frontend integration."
+        comment: "Добавлены endpoints для системы уведомлений: GET /api/notifications и POST /api/notifications/{id}/read"
 
 frontend:
   - task: "Authentication Context Fix"
