@@ -1608,6 +1608,48 @@ const AdminPage = () => {
     }
   };
 
+  const downloadExport = async (dataType) => {
+    try {
+      const response = await axios.get(`${API}/admin/export/${dataType}`, {
+        responseType: 'blob',
+      });
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `${dataType}.csv`;
+      if (contentDisposition) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(contentDisposition);
+        if (matches != null && matches[1]) { 
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "📁 Экспорт завершен",
+        description: `Данные "${dataType}" успешно скачаны`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: "❌ Ошибка экспорта",
+        description: "Не удалось скачать данные",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter and Sort Functions
   const filterApplications = (apps) => {
     let filtered = [...apps];
