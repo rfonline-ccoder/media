@@ -283,7 +283,7 @@ class SwagMediaAdminTester:
             # Test emergency state with 7 days block
             emergency_data = {
                 "days": 7,
-                "reason": "Тестовое ЧС - серьезное нарушение правил платформы"
+                "reason": "Test emergency state - serious platform violation"
             }
             
             response = self.session.post(f"{BASE_URL}/admin/users/{emergency_user_id}/emergency-state", json=emergency_data)
