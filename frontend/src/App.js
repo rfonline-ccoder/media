@@ -786,12 +786,19 @@ const LoginPage = () => {
 
 // Media List Page
 const MediaListPage = () => {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [mediaList, setMediaList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [previews, setPreviews] = useState(null);
+  const [accessingUser, setAccessingUser] = useState(null);
 
   useEffect(() => {
     fetchMediaList();
-  }, []);
+    if (isAuthenticated) {
+      fetchPreviews();
+    }
+  }, [isAuthenticated]);
 
   const fetchMediaList = async () => {
     try {
@@ -803,10 +810,99 @@ const MediaListPage = () => {
     setLoading(false);
   };
 
+  const fetchPreviews = async () => {
+    try {
+      const response = await axios.get(`${API}/user/previews`);
+      setPreviews(response.data);
+    } catch (error) {
+      console.error('Failed to fetch previews:', error);
+    }
+  };
+
+  const accessMedia = async (mediaUserId) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "❌ Требуется авторизация",
+        description: "Войдите в систему для доступа к медиа",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAccessingUser(mediaUserId);
+    try {
+      const response = await axios.post(`${API}/media/${mediaUserId}/access`);
+      
+      if (response.data.access_type === 'preview') {
+        toast({
+          title: "🔍 Предварительный просмотр",
+          description: response.data.message,
+          variant: "default",
+        });
+        // Refresh previews data
+        fetchPreviews();
+      } else {
+        toast({
+          title: "✅ Полный доступ",
+          description: response.data.message,
+        });
+      }
+      
+      // Show access data in modal
+      setAccessData(response.data.data);
+      setShowAccessModal(true);
+      
+    } catch (error) {
+      toast({
+        title: "❌ Ошибка доступа",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
+      
+      if (error.response?.status === 403) {
+        // Refresh previews to show updated state
+        fetchPreviews();
+      }
+    } finally {
+      setAccessingUser(null);
+    }
+  };
+
+  const [accessData, setAccessData] = useState(null);
+  const [showAccessModal, setShowAccessModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">Список медиа</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Список медиа</h1>
+          
+          {/* Preview Status Card */}
+          {isAuthenticated && previews && (
+            <Card className="w-auto">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Предпросмотры</p>
+                    <p className="text-lg font-bold">
+                      {previews.previews_remaining}/{previews.preview_limit}
+                    </p>
+                  </div>
+                  {previews.is_blacklisted && (
+                    <Badge variant="destructive">
+                      Заблокирован до {new Date(previews.blacklist_until).toLocaleDateString('ru-RU')}
+                    </Badge>
+                  )}
+                  {user?.media_type === 1 && (
+                    <Badge>
+                      Платный аккаунт
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
         
         {loading ? (
           <div className="text-center">Загрузка...</div>
@@ -817,41 +913,129 @@ const MediaListPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     {media.nickname}
-                    <Badge variant={media.media_type === 'Платное' ? 'default' : 'secondary'}>
-                      {media.media_type}
-                    </Badge>
+                    <div className="flex gap-2">
+                      <Badge variant={media.media_type === 'Платное' ? 'default' : 'secondary'}>
+                        {media.media_type}
+                      </Badge>
+                      {!media.can_access && !isAuthenticated && (
+                        <Badge variant="outline">
+                          Требуется вход
+                        </Badge>
+                      )}
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div>
-                      <strong>Канал:</strong>{' '}
-                      <a 
-                        href={media.channel_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                  <div className="space-y-3">
+                    {/* Show links only if user can access or has accessed */}
+                    {(media.can_access || !isAuthenticated) && (
+                      <>
+                        <div>
+                          <strong>Канал:</strong>{' '}
+                          <a 
+                            href={media.channel_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            Перейти
+                          </a>
+                        </div>
+                        <div>
+                          <strong>VK:</strong>{' '}
+                          <a 
+                            href={media.vk_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            Профиль
+                          </a>
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Access button for paid content */}
+                    {!media.can_access && isAuthenticated && media.media_type === 'Платное' && (
+                      <Button 
+                        onClick={() => accessMedia(media.id)}
+                        disabled={accessingUser === media.id || (previews?.is_blacklisted)}
+                        className="w-full"
+                        variant="outline"
                       >
-                        Перейти
-                      </a>
-                    </div>
-                    <div>
-                      <strong>VK:</strong>{' '}
-                      <a 
-                        href={media.vk_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        {accessingUser === media.id ? 'Получение доступа...' : 
+                         previews?.is_blacklisted ? 'Доступ заблокирован' :
+                         `Просмотреть (${previews?.previews_remaining || 0} осталось)`}
+                      </Button>
+                    )}
+                    
+                    {!media.can_access && !isAuthenticated && (
+                      <Button 
+                        onClick={() => toast({
+                          title: "❌ Требуется авторизация", 
+                          description: "Войдите в систему для доступа к медиа",
+                          variant: "destructive"
+                        })}
+                        className="w-full"
+                        variant="outline"
                       >
-                        Профиль
-                      </a>
-                    </div>
+                        Войти для доступа
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        {/* Access Modal */}
+        <Dialog open={showAccessModal} onOpenChange={setShowAccessModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Доступ к медиа</DialogTitle>
+              <DialogDescription>
+                Информация о доступе к выбранному медиа
+              </DialogDescription>
+            </DialogHeader>
+            {accessData && (
+              <div className="space-y-3">
+                <div>
+                  <strong>Никнейм:</strong> {accessData.nickname}
+                </div>
+                <div>
+                  <strong>Канал:</strong>{' '}
+                  <a 
+                    href={accessData.channel_link.includes('...') ? '#' : accessData.channel_link}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={accessData.channel_link.includes('...') ? 'text-gray-500' : 'text-blue-600 hover:underline'}
+                  >
+                    {accessData.channel_link}
+                  </a>
+                </div>
+                <div>
+                  <strong>VK:</strong>{' '}
+                  <a 
+                    href={accessData.vk_link.includes('...') ? '#' : accessData.vk_link}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={accessData.vk_link.includes('...') ? 'text-gray-500' : 'text-blue-600 hover:underline'}
+                  >
+                    {accessData.vk_link}
+                  </a>
+                </div>
+                {accessData.preview_note && (
+                  <Alert>
+                    <AlertDescription>
+                      {accessData.preview_note}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
