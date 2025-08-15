@@ -787,12 +787,6 @@ const ShopPage = () => {
           </p>
         </div>
 
-        {message && (
-          <Alert className="mb-6">
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-
         {categories.length > 0 && (
           <div className="mb-8">
             <div className="flex flex-wrap justify-center gap-3 mb-4">
