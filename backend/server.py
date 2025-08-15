@@ -738,7 +738,8 @@ async def init_shop():
 
 # Rating System Endpoints
 @api_router.post("/ratings")
-async def rate_user(rating_data: UserRating, current_user: dict = Depends(get_current_user)):
+@limiter.limit("100/day")
+async def rate_user(request: Request, rating_data: UserRating, current_user: dict = Depends(get_current_user)):
     # Check if user already rated this user
     existing_rating = await db.ratings.find_one({
         "user_id": current_user["id"],
