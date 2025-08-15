@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://dev-deploy-config.preview.emergentagent.com/api"
+BASE_URL = "https://sandbox-test.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class AdminFunctionsTester:

@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 import time
 
 # Configuration from review request
-BASE_URL = "https://dev-deploy-config.preview.emergentagent.com/api"
+BASE_URL = "https://sandbox-test.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class SwagMediaAdminTester:
