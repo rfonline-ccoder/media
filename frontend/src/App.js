@@ -28,7 +28,12 @@ import {
   Settings,
   TrendingUp,
   Users,
-  Activity
+  Activity,
+  Bell,
+  Edit,
+  ToggleLeft,
+  ToggleRight,
+  Image
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
