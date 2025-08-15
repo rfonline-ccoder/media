@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: swagmedia_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: swagmedia_local
+      MYSQL_USER: swag_user
+      MYSQL_PASSWORD: swag_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/swagmedia_schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - swagmedia_network
+
+  # Redis (for rate limiting, caching)
+  redis:
+    image: redis:7-alpine
+    container_name: swagmedia_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - swagmedia_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: swagmedia_backend
+    restart: unless-stopped
+    environment:
+      - MYSQL_URL=mysql+pymysql://swag_user:swag_password@mysql:3306/swagmedia_local
+      - CORS_ORIGINS=*
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=local-development-jwt-secret
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - swagmedia_network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: swagmedia_frontend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    networks:
+      - swagmedia_network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  swagmedia_network:
+    driver: bridge
