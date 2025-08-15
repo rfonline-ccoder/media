@@ -9,7 +9,7 @@ import os
 Base = declarative_base()
 
 # Database URL for MySQL
-DATABASE_URL = f"mysql+pymysql://root:@localhost:3306/swagmedia_sql"
+DATABASE_URL = os.environ.get('MYSQL_URL', "mysql+pymysql://root:@localhost:3306/swagmedia")
 
 class User(Base):
     __tablename__ = "users"
