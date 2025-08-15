@@ -41,8 +41,28 @@ import {
   SortAsc,
   SortDesc,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download,
+  Star
 } from "lucide-react";
+
+// Import Recharts components
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from 'recharts';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
