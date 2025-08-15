@@ -20,6 +20,9 @@ from slowapi.errors import RateLimitExceeded
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Rate Limiter setup
+limiter = Limiter(key_func=get_remote_address)
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -27,6 +30,10 @@ db = client["swagmedia"]  # Using swagmedia database name
 
 # Create the main app without a prefix
 app = FastAPI()
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
