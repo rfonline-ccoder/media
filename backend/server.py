@@ -678,9 +678,10 @@ async def get_advanced_stats():
             "default": "Other",
             "output": {"count": {"$sum": 1}}
         }}
-    ]).to_list(10)
+    ]).to_list(12)
     
-    return {
+    # Cache for 10 minutes
+    stats = {
         "user_stats": {
             "paid_users": paid_users,
             "free_users": free_users,
@@ -703,6 +704,9 @@ async def get_advanced_stats():
         "monthly_reports": [{"month": f"{item['_id']['year']}-{item['_id']['month']:02d}", "count": item["count"]} for item in monthly_reports],
         "balance_ranges": balance_ranges
     }
+    
+    set_cache("advanced_stats", stats, 600)
+    return stats
 
 # Initialize shop items
 @api_router.post("/admin/init-shop")
