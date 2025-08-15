@@ -3017,6 +3017,230 @@ const ShopManagementTab = () => {
   );
 };
 
+// Blacklist Management Tab Component
+const BlacklistManagementTab = () => {
+  const { toast } = useToast();
+  const [blacklistData, setBlacklistData] = useState({ ip_blacklist: [], blacklisted_users: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBlacklist();
+  }, []);
+
+  const fetchBlacklist = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/blacklist`);
+      setBlacklistData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch blacklist:', error);
+      toast({
+        title: "❌ Ошибка загрузки",
+        description: "Не удалось загрузить данные черного списка",
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const resetUserPreviews = async (userId) => {
+    try {
+      await axios.post(`${API}/admin/users/${userId}/reset-previews`);
+      toast({
+        title: "✅ Предпросмотры сброшены",
+        description: "Пользователь может снова использовать предпросмотры",
+      });
+    } catch (error) {
+      console.error('Failed to reset previews:', error);
+      toast({
+        title: "❌ Ошибка сброса",
+        description: error.response?.data?.detail || "Не удалось сбросить предпросмотры",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const unblacklistUser = async (userId) => {
+    try {
+      await axios.post(`${API}/admin/users/${userId}/unblacklist`);
+      toast({
+        title: "✅ Пользователь разблокирован",
+        description: "Пользователь был удален из черного списка",
+      });
+      fetchBlacklist(); // Refresh data
+    } catch (error) {
+      console.error('Failed to unblacklist user:', error);
+      toast({
+        title: "❌ Ошибка разблокировки",
+        description: error.response?.data?.detail || "Не удалось разблокировать пользователя",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center">Загрузка данных черного списка...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-4">🚫 Управление черным списком</h2>
+        <p className="text-gray-600 mb-6">
+          Управление заблокированными пользователями и IP адресами
+        </p>
+      </div>
+
+      {/* Blacklisted Users */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Заблокированные пользователи</CardTitle>
+          <CardDescription>
+            Пользователи, заблокированные за превышение лимита предпросмотров
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {blacklistData.blacklisted_users.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <div className="text-4xl mb-2">✅</div>
+              <div>Нет заблокированных пользователей</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {blacklistData.blacklisted_users.map((user) => (
+                <Card key={user.id} className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive">Заблокирован</Badge>
+                        <span className="font-semibold">ID: {user.id}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <strong>VK ссылка:</strong> {user.vk_link || 'Удалена'}
+                        </div>
+                        <div>
+                          <strong>Предпросмотры:</strong> {user.previews_used || 0}/{user.previews_limit || 3}
+                        </div>
+                        <div>
+                          <strong>Заблокирован до:</strong>{' '}
+                          {new Date(user.blacklist_until).toLocaleDateString('ru-RU', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                        <div>
+                          <strong>IP регистрации:</strong> {user.registration_ip || 'Не сохранен'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => resetUserPreviews(user.id)}
+                      >
+                        Сбросить предпросмотры
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => unblacklistUser(user.id)}
+                      >
+                        Разблокировать
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* IP Blacklist */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Заблокированные IP адреса</CardTitle>
+          <CardDescription>
+            IP адреса, заблокированные в системе регистрации
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {blacklistData.ip_blacklist.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <div className="text-4xl mb-2">✅</div>
+              <div>Нет заблокированных IP адресов</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {blacklistData.ip_blacklist.map((ipEntry) => (
+                <Card key={ipEntry.id} className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <strong>IP адрес:</strong> {ipEntry.ip_address}
+                    </div>
+                    <div>
+                      <strong>VK ссылка:</strong> {ipEntry.vk_link}
+                    </div>
+                    <div>
+                      <strong>Заблокирован до:</strong>{' '}
+                      {new Date(ipEntry.blacklist_until).toLocaleDateString('ru-RU', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                    <div>
+                      <strong>Причина:</strong> {ipEntry.reason}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-red-600">
+              {blacklistData.blacklisted_users.length}
+            </div>
+            <div className="text-sm text-gray-600">Заблокированных пользователей</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">
+              {blacklistData.ip_blacklist.length}
+            </div>
+            <div className="text-sm text-gray-600">Заблокированных IP</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {blacklistData.blacklisted_users.filter(u => 
+                new Date(u.blacklist_until) > new Date()
+              ).length}
+            </div>
+            <div className="text-sm text-gray-600">Активных блокировок</div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 // Ratings and Leaderboard Page
 const RatingsPage = () => {
   const { user, isAuthenticated } = useAuth();
