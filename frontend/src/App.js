@@ -681,11 +681,11 @@ const ProfilePage = () => {
 // Shop Page
 const ShopPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
+  const { toast } = useToast();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
     fetchShopItems();
@@ -703,28 +703,50 @@ const ShopPage = () => {
         const uniqueCategories = [...new Set(itemsData.map(item => item.category))];
         console.log('Categories found:', uniqueCategories);
         setCategories(uniqueCategories);
-        setMessage(''); // Clear any previous error messages
+        toast({
+          title: "🛍️ Магазин загружен",
+          description: `Найдено ${itemsData.length} товаров в ${uniqueCategories.length} категориях`,
+        });
       } else {
-        setMessage('Товары не найдены. Пожалуйста, обратитесь к администратору.');
+        toast({
+          title: "⚠️ Товары не найдены",
+          description: "Пожалуйста, обратитесь к администратору.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Failed to fetch shop items:', error);
-      setMessage('Ошибка загрузки товаров. Попробуйте обновить страницу.');
+      toast({
+        title: "❌ Ошибка загрузки",
+        description: "Не удалось загрузить товары. Попробуйте обновить страницу.",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
 
   const handlePurchase = async (itemId) => {
     if (!isAuthenticated) {
-      setMessage('Войдите в аккаунт для покупок');
+      toast({
+        title: "🔒 Требуется авторизация",
+        description: "Войдите в аккаунт для совершения покупок",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       await axios.post(`${API}/shop/purchase`, { item_id: itemId });
-      setMessage('Заявка на покупку подана! Ожидайте одобрения администратора.');
+      toast({
+        title: "✅ Заявка подана!",
+        description: "Ваша заявка на покупку отправлена администратору на рассмотрение.",
+      });
     } catch (error) {
-      setMessage(`Ошибка: ${error.response?.data?.detail || error.message}`);
+      toast({
+        title: "❌ Ошибка покупки",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
     }
   };
 
