@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Configuration
 BASE_URL = "https://db-setup-project.preview.emergentagent.com/api"
-ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
+ADMIN_CREDENTIALS = {"login": "admin", "password": "ba7a7am1ZX3"}
 
 class ReviewRequestTester:
     def __init__(self):
