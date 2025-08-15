@@ -169,20 +169,53 @@ backend:
         agent: "testing"
         comment: "✅ ПРОТЕСТИРОВАНО: Оба endpoint работают корректно. GET /api/admin/shop/items возвращает список товаров для админа, POST /api/admin/shop/item/{item_id}/image обновляет изображение товара с валидацией URL (должен начинаться с http/https)."
         
-  - task: "Notifications System"
+  - task: "Система предварительных просмотров"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
+    priority: "high"
+    needs_retesting: true
     status_history:
       - working: false
         agent: "main"
-        comment: "Добавлены endpoints для системы уведомлений: GET /api/notifications и POST /api/notifications/{id}/read"
-      - working: true
-        agent: "testing"
-        comment: "✅ ПРОТЕСТИРОВАНО: Система уведомлений работает полностью. GET /api/notifications возвращает уведомления пользователя, POST /api/notifications/{id}/read помечает уведомление как прочитанное. Уведомления создаются при смене типа медиа. Добавлен недостающий endpoint для пометки как прочитанное."
+        comment: "Реализована полная система предварительных просмотров с лимитами, IP трекингом, автоматической блокировкой на 15 дней при превышении лимита 3/3 предов. Добавлены новые поля в User модель: previews_used, previews_limit, blacklist_until, registration_ip. Созданы новые модели IPBlacklist и MediaAccess."
+        
+  - task: "IP блокировка и VK трекинг"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлена система проверки IP и VK блокировки при регистрации. Функции check_ip_blacklist(), check_vk_blacklist(), add_ip_to_blacklist(), handle_preview_limit_exceeded() для полного цикла блокировки."
+        
+  - task: "Обновленный медиа-лист с доступом"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Обновлен endpoint /media-list для поддержки авторизации и проверки доступа. Добавлен новый endpoint /media/{media_user_id}/access для системы предпросмотров с проверками лимитов и автоматической блокировкой."
+
+  - task: "Админ управление предпросмотрами"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлены админ endpoints: /admin/blacklist для просмотра черного списка, /admin/users/{user_id}/reset-previews для сброса предпросмотров, /admin/users/{user_id}/unblacklist для разблокировки, /user/previews для получения статуса предпросмотров пользователя."
 
 frontend:
   - task: "Form Validation Frontend"
