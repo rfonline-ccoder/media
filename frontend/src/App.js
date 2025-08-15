@@ -307,6 +307,7 @@ const HomePage = () => {
 
 // Registration Page
 const RegisterPage = () => {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     nickname: '',
     login: '',
@@ -314,7 +315,6 @@ const RegisterPage = () => {
     vk_link: '',
     channel_link: ''
   });
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -322,10 +322,17 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       await axios.post(`${API}/register`, formData);
-      setMessage('Заявка на регистрацию подана! Ожидайте одобрения администратора.');
+      toast({
+        title: "✅ Заявка подана!",
+        description: "Заявка на регистрацию отправлена! Ожидайте одобрения администратора.",
+      });
       setFormData({ nickname: '', login: '', password: '', vk_link: '', channel_link: '' });
     } catch (error) {
-      setMessage(`Ошибка: ${error.response?.data?.detail || error.message}`);
+      toast({
+        title: "❌ Ошибка регистрации",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
