@@ -1134,7 +1134,7 @@ async def init_shop(admin_user: dict = Depends(require_admin), db: Session = Dep
         {"id": "6", "name": "Приоритет в очереди", "description": "Ваши заявки обрабатываются в первую очередь", "price": 150, "category": "Буст"},
         {"id": "7", "name": "Кастомная тема", "description": "Персональная цветовая схема для вашего профиля", "price": 250, "category": "Дизайн"},
         {"id": "8", "name": "Анимированный аватар", "description": "Возможность использовать GIF в качестве аватара", "price": 350, "category": "Дизайн"},
-        {"id": "9", name": "Уникальная рамка", "description": "Красивая рамка вокруг вашего профиля", "price": 180, "category": "Дизайн"},
+        {"id": "9", "name": "Уникальная рамка", "description": "Красивая рамка вокруг вашего профиля", "price": 180, "category": "Дизайн"},
     ]
     
     for item_data in shop_items:
