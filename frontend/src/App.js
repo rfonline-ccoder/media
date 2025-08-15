@@ -474,12 +474,6 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          {message && (
-            <Alert className="mt-4" variant={message.includes('Ошибка') ? 'destructive' : 'default'}>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="mt-4 text-center">
             <Button variant="link" asChild>
               <a href="/register">Нет аккаунта? Подать заявку</a>
