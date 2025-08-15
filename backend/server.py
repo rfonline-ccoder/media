@@ -272,11 +272,19 @@ async def get_media_list():
 # Shop endpoints
 @api_router.get("/shop/items")
 async def get_shop_items():
+    # Check cache first
+    cached_items = get_cache("shop_items")
+    if cached_items:
+        return cached_items
+    
     items = await db.shop_items.find().to_list(1000)
     # Remove MongoDB _id fields
     for item in items:
         if "_id" in item:
             del item["_id"]
+    
+    # Cache shop items for 30 minutes
+    set_cache("shop_items", items, CACHE_TTL_SHOP)
     return items
 
 @api_router.post("/shop/purchase")
