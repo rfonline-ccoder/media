@@ -207,43 +207,43 @@ const HomePage = () => {
         </div>
 
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <Card className="text-center hover:shadow-lg transition-shadow">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader>
-                <CardTitle className="flex items-center justify-center space-x-2">
-                  <Users className="h-6 w-6 text-blue-600" />
-                  <span>Медиа участников</span>
+                <CardTitle className="flex items-center justify-center space-x-2 text-blue-700">
+                  <Users className="h-8 w-8" />
+                  <span className="text-lg">Медиа участников</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600">{stats.total_media}</div>
-                <p className="text-gray-600">Активных создателей</p>
+                <div className="text-4xl font-bold text-blue-600 mb-2">{stats.total_media}</div>
+                <p className="text-blue-600/80">Активных создателей контента</p>
               </CardContent>
             </Card>
 
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <CardHeader>
-                <CardTitle className="flex items-center justify-center space-x-2">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
-                  <span>Потрачено MC</span>
+                <CardTitle className="flex items-center justify-center space-x-2 text-green-700">
+                  <TrendingUp className="h-8 w-8" />
+                  <span className="text-lg">Потрачено MC</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600">{stats.total_mc_spent}</div>
-                <p className="text-gray-600">Всего медиа-коинов</p>
+                <div className="text-4xl font-bold text-green-600 mb-2">{stats.total_mc_spent.toLocaleString()}</div>
+                <p className="text-green-600/80">Медиа-коинов в магазине</p>
               </CardContent>
             </Card>
 
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
               <CardHeader>
-                <CardTitle className="flex items-center justify-center space-x-2">
-                  <Coins className="h-6 w-6 text-yellow-600" />
-                  <span>Активных MC</span>
+                <CardTitle className="flex items-center justify-center space-x-2 text-yellow-700">
+                  <Coins className="h-8 w-8" />
+                  <span className="text-lg">Активных MC</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-yellow-600">{stats.total_mc_current}</div>
-                <p className="text-gray-600">В обращении</p>
+                <div className="text-4xl font-bold text-yellow-600 mb-2">{stats.total_mc_current.toLocaleString()}</div>
+                <p className="text-yellow-600/80">В обращении сейчас</p>
               </CardContent>
             </Card>
           </div>
