@@ -2953,10 +2953,28 @@ const AdminPage = () => {
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  className="w-full"
+                                  className="w-full mb-2"
                                   onClick={() => openWarningModal(userItem)}
                                 >
                                   ⚠️ Предупреждение
+                                </Button>
+                                
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="w-full mb-2"
+                                  onClick={() => openEmergencyStateModal(userItem)}
+                                >
+                                  🚨 Выдать ЧС
+                                </Button>
+                                
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => handleRemoveFromMedia(userItem)}
+                                >
+                                  🗑️ Снять с медиа
                                 </Button>
                               </div>
                             </div>
