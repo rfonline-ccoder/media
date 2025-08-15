@@ -97,65 +97,75 @@ const Navigation = () => {
   const { user, logout, isAuthenticated } = useAuth();
 
   return (
-    <nav className="bg-gradient-to-r from-blue-900 to-purple-900 text-white p-4 shadow-lg">
+    <nav className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 text-white p-4 shadow-2xl">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Activity className="h-8 w-8" />
-          <h1 className="text-2xl font-bold">SwagMedia</h1>
+        <div className="flex items-center space-x-3">
+          <div className="bg-white/20 p-2 rounded-full">
+            <Activity className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            SwagMedia
+          </h1>
         </div>
         
-        <div className="flex items-center space-x-6">
-          <a href="/" className="hover:text-blue-200 flex items-center space-x-1">
+        <div className="hidden md:flex items-center space-x-8">
+          <a href="/" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
             <Home className="h-4 w-4" />
             <span>Главная</span>
           </a>
           
-          <a href="/media-list" className="hover:text-blue-200 flex items-center space-x-1">
+          <a href="/media-list" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
             <Users className="h-4 w-4" />
             <span>Медиа</span>
           </a>
 
           {isAuthenticated && (
             <>
-              <a href="/profile" className="hover:text-blue-200 flex items-center space-x-1">
+              <a href="/profile" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
                 <User className="h-4 w-4" />
                 <span>Профиль</span>
               </a>
               
-              <a href="/shop" className="hover:text-blue-200 flex items-center space-x-1">
+              <a href="/shop" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
                 <ShoppingCart className="h-4 w-4" />
                 <span>Магазин</span>
               </a>
               
-              <a href="/reports" className="hover:text-blue-200 flex items-center space-x-1">
+              <a href="/reports" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
                 <FileText className="h-4 w-4" />
                 <span>Отчеты</span>
               </a>
 
               {user?.admin_level >= 1 && (
-                <a href="/admin" className="hover:text-blue-200 flex items-center space-x-1">
+                <a href="/admin" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
                   <Shield className="h-4 w-4" />
                   <span>Админ</span>
                 </a>
               )}
+            </>
+          )}
+        </div>
 
-              <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          {isAuthenticated && (
+            <>
+              <div className="bg-white/20 rounded-full px-4 py-2 flex items-center space-x-2">
                 <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-yellow-400 font-semibold">{user?.balance || 0} MC</span>
+                <span className="text-yellow-400 font-semibold">{user?.balance?.toLocaleString() || 0} MC</span>
               </div>
 
-              <Button variant="ghost" size="sm" onClick={logout}>
+              <Button variant="ghost" size="sm" onClick={logout} className="hover:bg-white/20 transition-all duration-200">
                 Выйти
               </Button>
             </>
           )}
 
           {!isAuthenticated && (
-            <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" asChild>
+            <div className="flex space-x-3">
+              <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200" asChild>
                 <a href="/login">Войти</a>
               </Button>
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 hover:bg-white/30 transition-all duration-200" asChild>
                 <a href="/register">Регистрация</a>
               </Button>
             </div>
