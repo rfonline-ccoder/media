@@ -457,7 +457,8 @@ async def approve_application(app_id: str, media_type: int = 0, current_user: di
             vk_link=user_data["vk_link"],
             channel_link=user_data["channel_link"],
             is_approved=True,
-            media_type=media_type
+            media_type=media_type,
+            registration_ip=user_data.get("registration_ip")
         )
         
         await db.users.insert_one(user.dict())
