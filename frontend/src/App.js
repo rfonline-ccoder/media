@@ -647,12 +647,20 @@ const ShopPage = () => {
     try {
       const response = await axios.get(`${API}/shop/items`);
       console.log('Shop items response:', response.data);
-      setItems(response.data || []);
-      const uniqueCategories = [...new Set((response.data || []).map(item => item.category))];
-      setCategories(uniqueCategories);
+      const itemsData = response.data || [];
+      setItems(itemsData);
+      
+      if (itemsData.length > 0) {
+        const uniqueCategories = [...new Set(itemsData.map(item => item.category))];
+        console.log('Categories found:', uniqueCategories);
+        setCategories(uniqueCategories);
+        setMessage(''); // Clear any previous error messages
+      } else {
+        setMessage('Товары не найдены. Пожалуйста, обратитесь к администратору.');
+      }
     } catch (error) {
       console.error('Failed to fetch shop items:', error);
-      setMessage('Ошибка загрузки товаров');
+      setMessage('Ошибка загрузки товаров. Попробуйте обновить страницу.');
     }
     setLoading(false);
   };
