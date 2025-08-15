@@ -411,8 +411,8 @@ const RegisterPage = () => {
 // Login Page
 const LoginPage = () => {
   const { login } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({ login: '', password: '' });
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -421,12 +421,20 @@ const LoginPage = () => {
     try {
       const response = await axios.post(`${API}/login`, formData);
       login(response.data.access_token, response.data.user);
+      toast({
+        title: "✅ Успешный вход!",
+        description: `Добро пожаловать, ${response.data.user.nickname}!`,
+      });
       // Force page reload to ensure proper navigation
       setTimeout(() => {
         window.location.href = '/';
-      }, 100);
+      }, 1000);
     } catch (error) {
-      setMessage(`Ошибка: ${error.response?.data?.detail || error.message}`);
+      toast({
+        title: "❌ Ошибка входа",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
