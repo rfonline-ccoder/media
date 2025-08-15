@@ -865,6 +865,129 @@ async def unblacklist_user(user_id: str, current_user: dict = Depends(get_curren
     
     return {"message": "Пользователь разблокирован"}
 
+class EmergencyStateRequest(BaseModel):
+    days: int = Field(ge=1, le=365)  # От 1 до 365 дней
+    reason: str
+
+@api_router.post("/admin/users/{user_id}/emergency-state")
+async def set_emergency_state(user_id: str, emergency_data: EmergencyStateRequest, current_user: dict = Depends(get_current_user)):
+    """Выдать ЧС (чрезвычайное состояние) - блокировка IP на регистрацию и вход"""
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_nickname = user.get("nickname", "Unknown")
+    user_ip = user.get("registration_ip")
+    user_vk = user.get("vk_link", "")
+    
+    # Устанавливаем срок блокировки
+    blacklist_until = datetime.utcnow() + timedelta(days=emergency_data.days)
+    
+    # Блокируем пользователя
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "blacklist_until": blacklist_until,
+            "is_approved": False
+        }}
+    )
+    
+    # Добавляем IP в черный список, если есть
+    if user_ip:
+        # Проверяем, нет ли уже такой записи
+        existing_ip_blacklist = await db.ip_blacklist.find_one({"ip_address": user_ip})
+        
+        if existing_ip_blacklist:
+            # Обновляем существующую запись
+            await db.ip_blacklist.update_one(
+                {"ip_address": user_ip},
+                {"$set": {
+                    "blacklist_until": blacklist_until,
+                    "reason": f"ЧС: {emergency_data.reason}"
+                }}
+            )
+        else:
+            # Создаем новую запись
+            ip_blacklist = {
+                "id": str(uuid.uuid4()),
+                "ip_address": user_ip,
+                "vk_link": user_vk,
+                "blacklist_until": blacklist_until,
+                "reason": f"ЧС: {emergency_data.reason}",
+                "created_at": datetime.utcnow()
+            }
+            await db.ip_blacklist.insert_one(ip_blacklist)
+    
+    # Создаем уведомление пользователю
+    notification = Notification(
+        user_id=user_id,
+        title="🚨 ЧРЕЗВЫЧАЙНОЕ СОСТОЯНИЕ",
+        message=f"На ваш аккаунт наложено ЧС на {emergency_data.days} дней. Причина: {emergency_data.reason}. Вход и регистрация с вашего IP заблокированы до {blacklist_until.strftime('%d.%m.%Y %H:%M')}",
+        type="error"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {
+        "message": f"ЧС выдано пользователю '{user_nickname}' на {emergency_data.days} дней",
+        "user_id": user_id,
+        "blocked_until": blacklist_until.isoformat(),
+        "reason": emergency_data.reason,
+        "ip_blocked": user_ip is not None,
+        "blocked_ip": user_ip
+    }
+
+@api_router.post("/admin/users/{user_id}/remove-from-media")
+async def remove_user_from_media(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Снять с медиа - полное удаление пользователя из БД"""
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_nickname = user.get("nickname", "Unknown")
+    
+    # Удаляем все связанные данные пользователя
+    # Удаляем рейтинги пользователя (как выставленные, так и полученные)
+    await db.ratings.delete_many({
+        "$or": [
+            {"user_id": user_id},
+            {"rated_user_id": user_id}
+        ]
+    })
+    
+    # Удаляем записи доступа к медиа
+    await db.media_access.delete_many({
+        "$or": [
+            {"user_id": user_id},
+            {"media_user_id": user_id}
+        ]
+    })
+    
+    # Удаляем уведомления
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    # Удаляем отчеты
+    await db.reports.delete_many({"user_id": user_id})
+    
+    # Удаляем покупки
+    await db.purchases.delete_many({"user_id": user_id})
+    
+    # Удаляем заявки (если есть)
+    await db.applications.delete_many({"login": user.get("login")})
+    
+    # Наконец удаляем самого пользователя
+    await db.users.delete_one({"id": user_id})
+    
+    return {
+        "message": f"Пользователь '{user_nickname}' полностью удален из системы",
+        "removed_user_id": user_id
+    }
+
 @api_router.get("/user/previews")
 async def get_user_previews(current_user: dict = Depends(get_current_user)):
     previews_used = current_user.get("previews_used", 0)
