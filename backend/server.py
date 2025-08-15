@@ -960,12 +960,12 @@ async def set_emergency_state(user_id: str, emergency_data: EmergencyStateReques
             reason=f"ES: {emergency_data.reason}"
         )
     
-    # Создаем уведомление пользователю
+    # Create notification for user
     notification = Notification(
         id=str(uuid.uuid4()),
         user_id=user_id,
-        title="🚨 ЧРЕЗВЫЧАЙНОЕ СОСТОЯНИЕ",
-        message=f"На ваш аккаунт наложено ЧС на {emergency_data.days} дней. Причина: {emergency_data.reason}. Вход и регистрация с вашего IP заблокированы до {blacklist_until.strftime('%d.%m.%Y %H:%M')}",
+        title="EMERGENCY STATE",
+        message=f"Emergency state imposed on your account for {emergency_data.days} days. Reason: {emergency_data.reason}. Login and registration from your IP blocked until {blacklist_until.strftime('%d.%m.%Y %H:%M')}",
         type="error"
     )
     db.add(notification)
