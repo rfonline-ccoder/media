@@ -55,6 +55,29 @@ class RegistrationRequest(BaseModel):
     password: str
     vk_link: str
     channel_link: str
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Пароль должен содержать минимум 8 символов')
+        return v
+    
+    @validator('vk_link')
+    def validate_vk_link(cls, v):
+        if not v.startswith(('http://', 'https://')):
+            raise ValueError('VK ссылка должна начинаться с http:// или https://')
+        if 'vk.com' not in v.lower():
+            raise ValueError('Это должна быть ссылка на VK')
+        return v
+    
+    @validator('channel_link')
+    def validate_channel_link(cls, v):
+        if not v.startswith(('http://', 'https://')):
+            raise ValueError('Ссылка на канал должна начинаться с http:// или https://')
+        valid_domains = ['t.me', 'youtube.com', 'youtu.be', 'instagram.com']
+        if not any(domain in v.lower() for domain in valid_domains):
+            raise ValueError('Ссылка должна вести на Telegram, YouTube или Instagram')
+        return v
 
 class LoginRequest(BaseModel):
     login: str
