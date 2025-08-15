@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Fix critical React routing issue in SwagMedia project - after login, navigation shows authenticated user but protected pages still redirect to login form. Also fix shop items display (API returns 9 items but UI shows 0) and admin panel tabs issue."
+user_problem_statement: "Реализация Priority 2 для SwagMedia: 1) Смена типа медиа в админке с уведомлениями пользователям, 2) Валидация форм (пароли мин 8 символов, email форматы, уникальность никнеймов), 3) Изображения товаров по URL, 4) Кастомная сумма MC при одобрении отчетов"
 
 backend:
   - task: "Authentication System"
