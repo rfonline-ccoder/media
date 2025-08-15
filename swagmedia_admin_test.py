@@ -232,7 +232,7 @@ class SwagMediaAdminTester:
             # Test giving warnings
             for warning_num in range(1, 4):  # Give 3 warnings
                 warning_data = {
-                    "reason": f"Тестовое предупреждение #{warning_num} - нарушение правил"
+                    "reason": f"Test warning #{warning_num} - rule violation"
                 }
                 
                 response = self.session.post(f"{BASE_URL}/admin/users/{self.test_user_id}/warning", json=warning_data)
