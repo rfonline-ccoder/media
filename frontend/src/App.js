@@ -682,6 +682,12 @@ const RegisterPage = () => {
     }
     
     setLoading(true);
+    console.log('🔍 Debug Registration:', { 
+      API, 
+      BACKEND_URL, 
+      fullURL: `${API}/register`,
+      formData 
+    });
     try {
       await axios.post(`${API}/register`, formData);
       toast({
