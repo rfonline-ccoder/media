@@ -1400,11 +1400,12 @@ const AdminPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="applications">Заявки ({applications.filter(app => app.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="purchases">Покупки ({purchases.filter(p => p.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="reports">Отчеты ({reports.filter(r => r.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="users">Пользователи ({users.length})</TabsTrigger>
+            <TabsTrigger value="shop">Магазин</TabsTrigger>
           </TabsList>
 
           <TabsContent value="applications" className="mt-6">
