@@ -403,6 +403,51 @@ test_plan:
       - working: false
         agent: "main"
         comment: "Добавлен новый таб 'Черный список' в админ панель с компонентом BlacklistManagementTab. Отображение заблокированных пользователей и IP адресов, кнопки управления: сброс предпросмотров, разблокировка пользователей. Статистика блокировок."
+        
+  - task: "Система предупреждений (Backend)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/warning для выдачи предупреждений пользователям. Увеличивается счетчик warnings, создается уведомление. Требует админские права."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Endpoint POST /api/admin/users/{user_id}/warning работает идеально! Счетчик предупреждений увеличивается корректно (0→1→2→3), уведомления создаются, требует админскую авторизацию. Валидация входных данных работает."
+        
+  - task: "Кнопка снять с медиа (Backend)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/remove-from-media для полного удаления пользователя из БД. Каскадное удаление всех связанных данных: рейтинги, отчеты, покупки, уведомления, записи доступа."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Endpoint POST /api/admin/users/{user_id}/remove-from-media работает превосходно! Пользователь полностью удаляется из БД вместе со всеми связанными данными. Каскадное удаление работает корректно, требует админские права."
+        
+  - task: "Система выдать ЧС (Backend)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/emergency-state для выдачи чрезвычайного состояния. Блокировка пользователя на указанное количество дней (1-365), блокировка IP, добавление в черный список, создание уведомлений."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Endpoint POST /api/admin/users/{user_id}/emergency-state работает отлично! Блокировка на указанные дни работает, IP добавляется в черный список, blacklist_until устанавливается корректно. Валидация дней (1-365) работает. Все записи видны в /api/admin/blacklist."
 
 agent_communication:
   - agent: "main"
