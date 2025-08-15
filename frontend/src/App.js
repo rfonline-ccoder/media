@@ -733,27 +733,60 @@ const ShopPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-start">
-                    <span>{item.name}</span>
-                    <Badge>{item.category}</Badge>
-                  </CardTitle>
-                  <CardDescription>{item.description}</CardDescription>
+              <Card key={item.id} className="hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-800 leading-tight">
+                      {item.name}
+                    </CardTitle>
+                    <Badge 
+                      variant={item.category === 'Премиум' ? 'default' : 
+                              item.category === 'Буст' ? 'secondary' : 'outline'}
+                      className="ml-2 flex-shrink-0"
+                    >
+                      {item.category}
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-sm text-gray-600 mt-2">
+                    {item.description}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-2">
                       <Coins className="h-5 w-5 text-yellow-600" />
-                      <span className="text-xl font-bold">{item.price} MC</span>
+                      <span className="text-xl font-bold text-gray-900">{item.price} MC</span>
                     </div>
                     <Button 
                       onClick={() => handlePurchase(item.id)}
                       disabled={user?.balance < item.price}
+                      className={user?.balance < item.price ? 
+                        "bg-gray-400 cursor-not-allowed" : 
+                        "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"}
                     >
-                      Купить
+                      {user?.balance < item.price ? 'Недостаточно MC' : 'Купить'}
                     </Button>
                   </div>
+                  
+                  {/* Progress bar showing affordability */}
+                  {user && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Ваш баланс: {user.balance} MC</span>
+                        <span>{user.balance >= item.price ? '✅ Доступно' : '❌ Нужно больше MC'}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            user.balance >= item.price 
+                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
+                              : 'bg-gradient-to-r from-red-400 to-orange-500'
+                          }`}
+                          style={{ width: `${Math.min(100, (user.balance / item.price) * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
