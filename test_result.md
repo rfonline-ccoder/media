@@ -301,13 +301,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Media Type Switching in Admin"
-    - "Form Validation Backend"
-    - "Custom MC Rewards for Reports"
-    - "Shop Item Images Management"
-    - "Form Validation Frontend"
+    - "Система предварительных просмотров"
+    - "IP блокировка и VK трекинг"
+    - "Обновленный медиа-лист с доступом"
+    - "Обновленный медиа-лист с системой предпросмотров"
+    - "Страница рейтингов и лидерборда"
+    - "Админ таб черного списка"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
   - task: "Обновленный медиа-лист с системой предпросмотров"
