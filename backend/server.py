@@ -2,7 +2,10 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, Text, ForeignKey, JSON
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
 import os
 import logging
 from pathlib import Path
@@ -16,64 +19,219 @@ import re
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-import asyncio
 
-# Advanced caching system with different TTL for different data types
-cache = {}
-cache_ttl = {}
-
-# Cache constants
-CACHE_TTL_STATS = 300      # 5 minutes for statistics
-CACHE_TTL_ADVANCED = 600   # 10 minutes for advanced stats  
-CACHE_TTL_USERS = 120      # 2 minutes for user data
-CACHE_TTL_SHOP = 1800      # 30 minutes for shop items
-
+# Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Rate Limiter setup
+# Database setup
+DATABASE_URL = f"mysql+pymysql://hesus:ba7a7m1ZX3.,@89.169.1.168:3306/swagmedia1"
+
+# SQLAlchemy setup
+Base = declarative_base()
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    connect_args={"charset": "utf8mb4"}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Database Models
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    login = Column(String(100), unique=True, nullable=False, index=True)
+    password = Column(String(255), nullable=False)
+    nickname = Column(String(100), unique=True, nullable=False, index=True)
+    vk_link = Column(String(255), nullable=False)
+    channel_link = Column(String(255), nullable=False)
+    balance = Column(Integer, default=0)
+    admin_level = Column(Integer, default=0)
+    is_approved = Column(Boolean, default=False)
+    media_type = Column(Integer, default=0)
+    warnings = Column(Integer, default=0)
+    previews_used = Column(Integer, default=0)
+    previews_limit = Column(Integer, default=3)
+    blacklist_until = Column(DateTime, nullable=True)
+    registration_ip = Column(String(45), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Application(Base):
+    __tablename__ = "applications"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    nickname = Column(String(100), nullable=False)
+    login = Column(String(100), nullable=False)
+    password = Column(String(255), nullable=False)
+    vk_link = Column(String(255), nullable=False)
+    channel_link = Column(String(255), nullable=False)
+    registration_ip = Column(String(45), nullable=True)
+    status = Column(String(20), default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    price = Column(Integer, nullable=False)
+    category = Column(String(100), nullable=False)
+    image_url = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Purchase(Base):
+    __tablename__ = "purchases"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    item_id = Column(String(36), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    total_price = Column(Integer, nullable=False)
+    status = Column(String(20), default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime, nullable=True)
+    admin_comment = Column(Text, nullable=True)
+
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    links = Column(JSON, nullable=False)
+    status = Column(String(20), default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    admin_comment = Column(Text, nullable=True)
+
+class UserRating(Base):
+    __tablename__ = "user_ratings"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    rated_user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    rating = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class IPBlacklist(Base):
+    __tablename__ = "ip_blacklist"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    ip_address = Column(String(45), nullable=False, index=True)
+    vk_link = Column(String(255), nullable=False)
+    blacklist_until = Column(DateTime, nullable=False)
+    reason = Column(String(255), default="User exceeded preview limit")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class MediaAccess(Base):
+    __tablename__ = "media_access"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    media_user_id = Column(String(36), nullable=False)
+    access_type = Column(String(20), nullable=False)
+    accessed_at = Column(DateTime, default=datetime.utcnow)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(20), default="info")
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# Database initialization function
+def init_database():
+    """Initialize database tables and default data"""
+    try:
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+        
+        # Create session to add default data
+        db = SessionLocal()
+        
+        try:
+            # Check if admin user exists
+            admin_user = db.query(User).filter(User.login == "admin").first()
+            if not admin_user:
+                # Create default admin user
+                admin_user = User(
+                    id="admin-id-123",
+                    login="admin",
+                    password="admin123",
+                    nickname="Administrator",
+                    vk_link="https://vk.com/admin",
+                    channel_link="https://t.me/admin",
+                    balance=10000,
+                    admin_level=1,
+                    is_approved=True,
+                    media_type=1
+                )
+                db.add(admin_user)
+                print("✅ Admin user created (admin/admin123)")
+            
+            # Check if shop items exist
+            shop_count = db.query(ShopItem).count()
+            if shop_count == 0:
+                # Create default shop items
+                shop_items = [
+                    ShopItem(id="1", name="VIP статус", description="Получите VIP статус на месяц", price=500, category="Премиум"),
+                    ShopItem(id="2", name="Премиум аккаунт", description="Доступ к премиум функциям", price=1000, category="Премиум"),
+                    ShopItem(id="3", name="Золотой значок", description="Эксклюзивный золотой значок", price=750, category="Премиум"),
+                    ShopItem(id="4", name="Ускорение отчетов", description="Быстрая обработка ваших отчетов", price=300, category="Буст"),
+                    ShopItem(id="5", name="Двойные медиа-коины", description="Удвоение получаемых MC на неделю", price=400, category="Буст"),
+                    ShopItem(id="6", name="Приоритет в очереди", description="Приоритетная обработка заявок", price=350, category="Буст"),
+                    ShopItem(id="7", name="Кастомная тема", description="Персональная тема интерфейса", price=600, category="Дизайн"),
+                    ShopItem(id="8", name="Анимированный аватар", description="Возможность загрузки GIF аватара", price=450, category="Дизайн"),
+                    ShopItem(id="9", name="Уникальная рамка", description="Эксклюзивная рамка профиля", price=550, category="Дизайн")
+                ]
+                
+                for item in shop_items:
+                    db.add(item)
+                print("✅ Shop items created")
+            
+            db.commit()
+            print("✅ Database initialized successfully")
+            
+        except Exception as e:
+            print(f"❌ Error initializing data: {e}")
+            db.rollback()
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# FastAPI setup
+app = FastAPI(title="SwagMedia API", version="1.0.0")
+api_router = APIRouter(prefix="/api")
+
+# Rate limiter
 limiter = Limiter(key_func=get_remote_address)
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client["swagmedia"]  # Using swagmedia database name
-
-# Create the main app without a prefix
-app = FastAPI()
-
-# Add rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
 # Security
 security = HTTPBearer()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-JWT_SECRET = "your-secret-key-change-in-production"
+JWT_SECRET = "swagmedia-secret-key-production-2025"
 JWT_ALGORITHM = "HS256"
 
-# Models
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    login: str
-    password: str  # Not hashed as per requirement
-    nickname: str
-    vk_link: str
-    channel_link: str
-    balance: int = Field(default=0)
-    admin_level: int = Field(default=0)
-    is_approved: bool = Field(default=False)
-    media_type: int = Field(default=0)  # 0 = free, 1 = paid
-    warnings: int = Field(default=0)
-    previews_used: int = Field(default=0)  # Number of previews used
-    previews_limit: int = Field(default=3)  # Maximum previews allowed
-    blacklist_until: Optional[datetime] = None  # Blacklist expiration date
-    registration_ip: Optional[str] = None  # IP address used for registration
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
+# Pydantic models
 class RegistrationRequest(BaseModel):
     nickname: str
     login: str
@@ -108,38 +266,6 @@ class LoginRequest(BaseModel):
     login: str
     password: str
 
-class ShopItem(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str
-    price: int
-    category: str
-    image_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-class PurchaseRequest(BaseModel):
-    item_id: str
-    quantity: int = 1
-
-class Purchase(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    item_id: str
-    quantity: int
-    total_price: int
-    status: str = Field(default="pending")  # pending, approved, rejected
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    reviewed_at: Optional[datetime] = None
-    admin_comment: Optional[str] = None
-
-class Report(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    links: List[dict]  # [{"url": "...", "views": 123}]
-    status: str = Field(default="pending")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    admin_comment: Optional[str] = None
-
 class ReportCreate(BaseModel):
     links: List[dict]
     
@@ -149,520 +275,464 @@ class ReportCreate(BaseModel):
             url = link.get('url', '')
             if not url.startswith(('http://', 'https://')):
                 raise ValueError('Все ссылки должны начинаться с http:// или https://')
-            # Проверяем что это валидный URL
-            if not re.match(r'https?://.+\..+', url):
-                raise ValueError('Введите корректный URL')
         return v
-
-class MediaTypeChange(BaseModel):
-    user_id: str
-    new_media_type: int  # 0 = free, 1 = paid
-    admin_comment: Optional[str] = None
-
-class ApplicationResponse(BaseModel):
-    id: str
-    type: str
-    data: dict
-    status: str
-    created_at: datetime
 
 class ApproveReportRequest(BaseModel):
     comment: str = ""
     mc_reward: Optional[int] = None
 
-class UserRating(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    rated_user_id: str
-    rating: int = Field(ge=1, le=5)  # 1-5 stars
-    comment: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+class MediaTypeChangeRequest(BaseModel):
+    new_media_type: int
+    admin_comment: Optional[str] = None
+
+class WarningRequest(BaseModel):
+    reason: str
+
+class EmergencyStateRequest(BaseModel):
+    days: int = Field(ge=1, le=365)
+    reason: str
 
 class RatingRequest(BaseModel):
     rated_user_id: str
-    rating: int = Field(ge=1, le=5)  # 1-5 stars
+    rating: int = Field(ge=1, le=5)
     comment: Optional[str] = None
 
-class IPBlacklist(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    ip_address: str
-    vk_link: str  # VK link that caused the blacklist
-    blacklist_until: datetime
-    reason: str = Field(default="User exceeded preview limit")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-class MediaAccess(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    media_user_id: str  # User whose media is being accessed
-    access_type: str  # "preview" or "full"
-    accessed_at: datetime = Field(default_factory=datetime.utcnow)
-
-class Notification(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    title: str
-    message: str
-    type: str = Field(default="info")  # info, warning, error, success
-    read: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
 # Helper functions
-def get_cache(key):
-    """Get cached value if not expired"""
-    if key in cache and key in cache_ttl:
-        if datetime.utcnow() < cache_ttl[key]:
-            return cache[key]
-        else:
-            # Expired, remove from cache
-            del cache[key]
-            del cache_ttl[key]
-    return None
-
-def set_cache(key, value, ttl_seconds=300):  # 5 minutes default
-    """Set cache with TTL"""
-    cache[key] = value
-    cache_ttl[key] = datetime.utcnow() + timedelta(seconds=ttl_seconds)
-
-async def check_ip_blacklist(ip_address: str):
+def check_ip_blacklist(ip_address: str, db: Session):
     """Check if IP is blacklisted"""
-    blacklist_entry = await db.ip_blacklist.find_one({
-        "ip_address": ip_address,
-        "blacklist_until": {"$gt": datetime.utcnow()}
-    })
+    blacklist_entry = db.query(IPBlacklist).filter(
+        IPBlacklist.ip_address == ip_address,
+        IPBlacklist.blacklist_until > datetime.utcnow()
+    ).first()
     return blacklist_entry is not None
 
-async def check_vk_blacklist(vk_link: str):
-    """Check if VK link is associated with blacklisted IP"""
-    user_with_vk = await db.users.find_one({
-        "vk_link": vk_link,
-        "blacklist_until": {"$gt": datetime.utcnow()}
-    })
+def check_vk_blacklist(vk_link: str, db: Session):
+    """Check if VK link is associated with blacklisted user"""
+    user_with_vk = db.query(User).filter(
+        User.vk_link == vk_link,
+        User.blacklist_until.isnot(None),
+        User.blacklist_until > datetime.utcnow()
+    ).first()
     return user_with_vk is not None
 
-async def add_ip_to_blacklist(ip_address: str, vk_link: str, days: int = 15):
+def add_ip_to_blacklist(ip_address: str, vk_link: str, db: Session, days: int = 15, reason: str = "User exceeded preview limit"):
     """Add IP to blacklist for specified days"""
-    blacklist_entry = IPBlacklist(
-        ip_address=ip_address,
-        vk_link=vk_link,
-        blacklist_until=datetime.utcnow() + timedelta(days=days)
-    )
-    await db.ip_blacklist.insert_one(blacklist_entry.dict())
-
-async def handle_preview_limit_exceeded(user_id: str):
-    """Handle when user exceeds preview limit"""
-    user = await db.users.find_one({"id": user_id})
-    if not user:
-        return
-    
-    # Set blacklist until 15 days from now
-    blacklist_until = datetime.utcnow() + timedelta(days=15)
-    
-    # Update user with blacklist
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {
-            "blacklist_until": blacklist_until,
-            "is_approved": False
-        }}
-    )
-    
-    # Add IP to blacklist if available
-    if user.get("registration_ip"):
-        await add_ip_to_blacklist(
-            user["registration_ip"], 
-            user["vk_link"],
-            days=15
+    # Check if IP is already blacklisted
+    existing = db.query(IPBlacklist).filter(IPBlacklist.ip_address == ip_address).first()
+    if existing:
+        # Update existing record
+        existing.blacklist_until = datetime.utcnow() + timedelta(days=days)
+        existing.reason = reason
+    else:
+        # Create new record
+        blacklist_entry = IPBlacklist(
+            id=str(uuid.uuid4()),
+            ip_address=ip_address,
+            vk_link=vk_link,
+            blacklist_until=datetime.utcnow() + timedelta(days=days),
+            reason=reason
         )
-    
-    # Delete user data for privacy (keep basic info for blacklist tracking)
-    await db.users.update_one(
-        {"id": user_id},
-        {"$unset": {
-            "login": "",
-            "password": "",
-            "nickname": "",
-            "channel_link": "",
-            "balance": ""
-        }}
-    )
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        db.add(blacklist_entry)
+    db.commit()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("user_id")
-        user = await db.users.find_one({"id": user_id})
+        user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         
-        # Remove MongoDB _id field to avoid serialization issues
-        if "_id" in user:
-            del user["_id"]
-            
-        return user
+        return {
+            "id": user.id,
+            "login": user.login,
+            "nickname": user.nickname,
+            "vk_link": user.vk_link,
+            "channel_link": user.channel_link,
+            "balance": user.balance,
+            "admin_level": user.admin_level,
+            "is_approved": user.is_approved,
+            "media_type": user.media_type,
+            "warnings": user.warnings,
+            "previews_used": user.previews_used,
+            "previews_limit": user.previews_limit,
+            "blacklist_until": user.blacklist_until,
+            "registration_ip": user.registration_ip,
+            "created_at": user.created_at
+        }
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# Rate limiting decorators for critical endpoints
+def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+# API Routes
 @api_router.post("/register")
 @limiter.limit("10/hour")
-async def register_user(request: Request, registration: RegistrationRequest):
+async def register_user(request: Request, registration: RegistrationRequest, db: Session = Depends(get_db)):
     # Get client IP address
     client_ip = get_remote_address(request)
     
     # Check if IP is blacklisted
-    if await check_ip_blacklist(client_ip):
+    if check_ip_blacklist(client_ip, db):
         raise HTTPException(
             status_code=403, 
             detail="Регистрация временно недоступна с вашего IP адреса"
         )
     
     # Check if VK link is associated with blacklisted account
-    if await check_vk_blacklist(registration.vk_link):
+    if check_vk_blacklist(registration.vk_link, db):
         raise HTTPException(
             status_code=403, 
             detail="Регистрация с данными VK временно недоступна"
         )
     
     # Check if login already exists
-    existing_login = await db.users.find_one({"login": registration.login})
+    existing_login = db.query(User).filter(User.login == registration.login).first()
     if existing_login:
         raise HTTPException(status_code=400, detail="Логин уже занят")
     
     # Check if nickname already exists
-    existing_nickname = await db.users.find_one({"nickname": registration.nickname})
+    existing_nickname = db.query(User).filter(User.nickname == registration.nickname).first()
     if existing_nickname:
         raise HTTPException(status_code=400, detail="Никнейм уже занят")
     
-    # Create registration application with IP tracking
-    application = {
-        "id": str(uuid.uuid4()),
-        "type": "registration",
-        "data": {**registration.dict(), "registration_ip": client_ip},
-        "status": "pending",
-        "created_at": datetime.utcnow()
-    }
+    # Create registration application
+    application = Application(
+        id=str(uuid.uuid4()),
+        nickname=registration.nickname,
+        login=registration.login,
+        password=registration.password,
+        vk_link=registration.vk_link,
+        channel_link=registration.channel_link,
+        registration_ip=client_ip
+    )
     
-    await db.applications.insert_one(application)
+    db.add(application)
+    db.commit()
+    
     return {"message": "Заявка на регистрацию отправлена! Ожидайте одобрения администратора."}
 
 @api_router.post("/login")
 @limiter.limit("30/hour")
-async def login_user(request: Request, login_data: LoginRequest):
-    user = await db.users.find_one({"login": login_data.login})
-    if not user or user["password"] != login_data.password:
+async def login_user(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.login == login_data.login).first()
+    if not user or user.password != login_data.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    if not user["is_approved"]:
+    if not user.is_approved:
         raise HTTPException(status_code=401, detail="Account not approved yet")
     
-    # Remove MongoDB _id field to avoid serialization issues
-    if "_id" in user:
-        del user["_id"]
+    # Check if user is blacklisted
+    if user.blacklist_until and user.blacklist_until > datetime.utcnow():
+        raise HTTPException(
+            status_code=403,
+            detail=f"Доступ заблокирован до {user.blacklist_until.strftime('%d.%m.%Y %H:%M')}"
+        )
     
-    token = jwt.encode({"user_id": user["id"]}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    return {"access_token": token, "token_type": "bearer", "user": user}
+    token = jwt.encode({"user_id": user.id}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return {
+        "access_token": token, 
+        "token_type": "bearer", 
+        "user": {
+            "id": user.id,
+            "nickname": user.nickname,
+            "admin_level": user.admin_level,
+            "balance": user.balance,
+            "media_type": user.media_type
+        }
+    }
 
-# User endpoints
 @api_router.get("/profile")
 async def get_profile(current_user: dict = Depends(get_current_user)):
     return current_user
 
 @api_router.get("/media-list")
-async def get_media_list(current_user: dict = Depends(get_current_user)):
+async def get_media_list(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     # Check if user is blacklisted
     if current_user.get("blacklist_until") and current_user["blacklist_until"] > datetime.utcnow():
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail=f"Доступ заблокирован до {current_user['blacklist_until'].strftime('%d.%m.%Y %H:%M')}"
         )
     
-    users = await db.users.find({"is_approved": True}).to_list(1000)
+    users = db.query(User).filter(User.is_approved == True).all()
     media_list = []
+    
     for user in users:
         # Don't show blacklisted users
-        if user.get("blacklist_until") and user["blacklist_until"] > datetime.utcnow():
+        if user.blacklist_until and user.blacklist_until > datetime.utcnow():
             continue
             
         media_list.append({
-            "id": user["id"],
-            "nickname": user["nickname"],
-            "channel_link": user["channel_link"],
-            "vk_link": user["vk_link"],
-            "media_type": "Платное" if user["media_type"] == 1 else "Бесплатное",
-            "can_access": user["media_type"] == 0 or current_user["media_type"] == 1
+            "id": user.id,
+            "nickname": user.nickname,
+            "channel_link": user.channel_link,
+            "vk_link": user.vk_link,
+            "media_type": "Платное" if user.media_type == 1 else "Бесплатное",
+            "can_access": user.media_type == 0 or current_user["media_type"] == 1
         })
+    
     return media_list
 
 @api_router.post("/media/{media_user_id}/access")
-async def access_media(media_user_id: str, current_user: dict = Depends(get_current_user)):
+async def access_media(media_user_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     # Check if user is blacklisted
     if current_user.get("blacklist_until") and current_user["blacklist_until"] > datetime.utcnow():
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail=f"Доступ заблокирован до {current_user['blacklist_until'].strftime('%d.%m.%Y %H:%M')}"
         )
     
     # Get media user
-    media_user = await db.users.find_one({"id": media_user_id})
-    if not media_user or not media_user.get("is_approved"):
+    media_user = db.query(User).filter(User.id == media_user_id).first()
+    if not media_user or not media_user.is_approved:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
     # If media is free, allow full access
-    if media_user["media_type"] == 0:
+    if media_user.media_type == 0:
         access_record = MediaAccess(
+            id=str(uuid.uuid4()),
             user_id=current_user["id"],
             media_user_id=media_user_id,
             access_type="full"
         )
-        await db.media_access.insert_one(access_record.dict())
+        db.add(access_record)
+        db.commit()
+        
         return {
             "access_type": "full",
             "message": "Полный доступ к бесплатному медиа",
             "data": {
-                "nickname": media_user["nickname"],
-                "channel_link": media_user["channel_link"],
-                "vk_link": media_user["vk_link"]
+                "nickname": media_user.nickname,
+                "channel_link": media_user.channel_link,
+                "vk_link": media_user.vk_link
             }
         }
     
     # If user has paid access, allow full access
     if current_user["media_type"] == 1:
         access_record = MediaAccess(
+            id=str(uuid.uuid4()),
             user_id=current_user["id"],
             media_user_id=media_user_id,
             access_type="full"
         )
-        await db.media_access.insert_one(access_record.dict())
+        db.add(access_record)
+        db.commit()
+        
         return {
             "access_type": "full",
             "message": "Полный доступ для платного пользователя",
             "data": {
-                "nickname": media_user["nickname"],
-                "channel_link": media_user["channel_link"],
-                "vk_link": media_user["vk_link"]
+                "nickname": media_user.nickname,
+                "channel_link": media_user.channel_link,
+                "vk_link": media_user.vk_link
             }
         }
     
     # For free users accessing paid media - use preview system
-    user_previews = current_user.get("previews_used", 0)
-    preview_limit = current_user.get("previews_limit", 3)
+    user_obj = db.query(User).filter(User.id == current_user["id"]).first()
     
-    if user_previews >= preview_limit:
+    if user_obj.previews_used >= user_obj.previews_limit:
         # User has exceeded preview limit - trigger blacklist
-        await handle_preview_limit_exceeded(current_user["id"])
+        user_obj.blacklist_until = datetime.utcnow() + timedelta(days=15)
+        user_obj.is_approved = False
+        
+        # Add IP to blacklist if available
+        if user_obj.registration_ip:
+            add_ip_to_blacklist(
+                user_obj.registration_ip,
+                user_obj.vk_link,
+                db,
+                days=15,
+                reason="Превышен лимит предварительных просмотров"
+            )
+        
+        db.commit()
+        
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Лимит предварительных просмотров исчерпан. Доступ заблокирован на 15 дней."
         )
     
     # Increment preview counter
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$inc": {"previews_used": 1}}
-    )
+    user_obj.previews_used += 1
     
     # Log preview access
     access_record = MediaAccess(
+        id=str(uuid.uuid4()),
         user_id=current_user["id"],
         media_user_id=media_user_id,
         access_type="preview"
     )
-    await db.media_access.insert_one(access_record.dict())
+    db.add(access_record)
+    db.commit()
     
-    previews_remaining = preview_limit - user_previews - 1
+    previews_remaining = user_obj.previews_limit - user_obj.previews_used
     
     return {
         "access_type": "preview",
         "message": f"Предварительный просмотр. Осталось: {previews_remaining}/3",
         "previews_remaining": previews_remaining,
         "data": {
-            "nickname": media_user["nickname"],
-            "channel_link": media_user["channel_link"][:20] + "..." if len(media_user["channel_link"]) > 20 else media_user["channel_link"],
-            "vk_link": media_user["vk_link"][:20] + "..." if len(media_user["vk_link"]) > 20 else media_user["vk_link"],
+            "nickname": media_user.nickname,
+            "channel_link": media_user.channel_link[:20] + "..." if len(media_user.channel_link) > 20 else media_user.channel_link,
+            "vk_link": media_user.vk_link[:20] + "..." if len(media_user.vk_link) > 20 else media_user.vk_link,
             "preview_note": "Это предварительный просмотр. Для полного доступа приобретите платный аккаунт."
         }
     }
 
+@api_router.get("/user/previews")
+async def get_user_previews(current_user: dict = Depends(get_current_user)):
+    return {
+        "previews_used": current_user.get("previews_used", 0),
+        "preview_limit": current_user.get("previews_limit", 3),
+        "previews_remaining": max(0, current_user.get("previews_limit", 3) - current_user.get("previews_used", 0)),
+        "is_blacklisted": current_user.get("blacklist_until") and current_user["blacklist_until"] > datetime.utcnow(),
+        "blacklist_until": current_user["blacklist_until"].isoformat() if current_user.get("blacklist_until") else None
+    }
+
 # Shop endpoints
 @api_router.get("/shop/items")
-async def get_shop_items():
-    # Check cache first
-    cached_items = get_cache("shop_items")
-    if cached_items:
-        return cached_items
-    
-    items = await db.shop_items.find().to_list(1000)
-    # Remove MongoDB _id fields
-    for item in items:
-        if "_id" in item:
-            del item["_id"]
-    
-    # Cache shop items for 30 minutes
-    set_cache("shop_items", items, CACHE_TTL_SHOP)
-    return items
-
-@api_router.post("/shop/purchase")
-async def purchase_item(purchase: PurchaseRequest, current_user: dict = Depends(get_current_user)):
-    item = await db.shop_items.find_one({"id": purchase.item_id})
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    
-    total_price = item["price"] * purchase.quantity
-    
-    # Create purchase request
-    purchase_obj = Purchase(
-        user_id=current_user["id"],
-        item_id=purchase.item_id,
-        quantity=purchase.quantity,
-        total_price=total_price
-    )
-    
-    await db.purchases.insert_one(purchase_obj.dict())
-    return {"message": "Purchase request submitted for admin approval"}
+async def get_shop_items(db: Session = Depends(get_db)):
+    items = db.query(ShopItem).all()
+    return [{
+        "id": item.id,
+        "name": item.name,
+        "description": item.description,
+        "price": item.price,
+        "category": item.category,
+        "image_url": item.image_url
+    } for item in items]
 
 # Reports endpoints
 @api_router.post("/reports")
 @limiter.limit("50/day")
-async def submit_report(request: Request, report_data: ReportCreate, current_user: dict = Depends(get_current_user)):
+async def submit_report(request: Request, report_data: ReportCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     report = Report(
+        id=str(uuid.uuid4()),
         user_id=current_user["id"],
         links=report_data.links
     )
     
-    await db.reports.insert_one(report.dict())
+    db.add(report)
+    db.commit()
+    
     return {"message": "Report submitted successfully"}
 
 @api_router.get("/reports/my")
-async def get_my_reports(current_user: dict = Depends(get_current_user)):
-    reports = await db.reports.find({"user_id": current_user["id"]}).to_list(1000)
-    # Remove MongoDB _id fields
-    for report in reports:
-        if "_id" in report:
-            del report["_id"]
-    return reports
+async def get_my_reports(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    reports = db.query(Report).filter(Report.user_id == current_user["id"]).all()
+    return [{
+        "id": report.id,
+        "links": report.links,
+        "status": report.status,
+        "created_at": report.created_at,
+        "admin_comment": report.admin_comment
+    } for report in reports]
 
 # Admin endpoints
 @api_router.get("/admin/applications")
-async def get_applications(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    applications = await db.applications.find().to_list(1000)
-    # Remove MongoDB _id fields
-    for app in applications:
-        if "_id" in app:
-            del app["_id"]
-    return applications
+async def get_applications(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    applications = db.query(Application).all()
+    return [{
+        "id": app.id,
+        "nickname": app.nickname,
+        "login": app.login,
+        "vk_link": app.vk_link,
+        "channel_link": app.channel_link,
+        "status": app.status,
+        "created_at": app.created_at
+    } for app in applications]
 
 @api_router.post("/admin/applications/{app_id}/approve")
-async def approve_application(app_id: str, media_type: int = 0, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    application = await db.applications.find_one({"id": app_id})
+async def approve_application(app_id: str, media_type: int = 0, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    application = db.query(Application).filter(Application.id == app_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     
-    if application["type"] == "registration":
-        # Create user
-        user_data = application["data"]
-        user = User(
-            login=user_data["login"],
-            password=user_data["password"],
-            nickname=user_data["nickname"],
-            vk_link=user_data["vk_link"],
-            channel_link=user_data["channel_link"],
-            is_approved=True,
-            media_type=media_type,
-            registration_ip=user_data.get("registration_ip")
-        )
-        
-        await db.users.insert_one(user.dict())
+    if application.status != "pending":
+        raise HTTPException(status_code=400, detail="Application already processed")
+    
+    # Create user
+    user = User(
+        id=str(uuid.uuid4()),
+        login=application.login,
+        password=application.password,
+        nickname=application.nickname,
+        vk_link=application.vk_link,
+        channel_link=application.channel_link,
+        is_approved=True,
+        media_type=media_type,
+        registration_ip=application.registration_ip
+    )
+    
+    db.add(user)
     
     # Update application status
-    await db.applications.update_one(
-        {"id": app_id},
-        {"$set": {"status": "approved", "reviewed_at": datetime.utcnow()}}
-    )
+    application.status = "approved"
+    
+    db.commit()
     
     return {"message": "Application approved"}
 
 @api_router.post("/admin/applications/{app_id}/reject")
-async def reject_application(app_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
+async def reject_application(app_id: str, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    application = db.query(Application).filter(Application.id == app_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
     
-    await db.applications.update_one(
-        {"id": app_id},
-        {"$set": {"status": "rejected", "reviewed_at": datetime.utcnow()}}
-    )
+    application.status = "rejected"
+    db.commit()
     
     return {"message": "Application rejected"}
 
-@api_router.get("/admin/purchases")
-async def get_purchases(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    purchases = await db.purchases.find().to_list(1000)
-    # Remove MongoDB _id fields and enrich with user info
-    for purchase in purchases:
-        if "_id" in purchase:
-            del purchase["_id"]
-        user = await db.users.find_one({"id": purchase["user_id"]})
-        purchase["user_nickname"] = user["nickname"] if user else "Unknown"
-        item = await db.shop_items.find_one({"id": purchase["item_id"]})
-        purchase["item_name"] = item["name"] if item else "Unknown"
-    
-    return purchases
-
-@api_router.post("/admin/purchases/{purchase_id}/approve")
-async def approve_purchase(purchase_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    await db.purchases.update_one(
-        {"id": purchase_id},
-        {"$set": {"status": "approved", "reviewed_at": datetime.utcnow()}}
-    )
-    
-    return {"message": "Purchase approved"}
-
-@api_router.post("/admin/purchases/{purchase_id}/reject")
-async def reject_purchase(purchase_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    await db.purchases.update_one(
-        {"id": purchase_id},
-        {"$set": {"status": "rejected", "reviewed_at": datetime.utcnow()}}
-    )
-    
-    return {"message": "Purchase rejected"}
+@api_router.get("/admin/users")
+async def get_all_users(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return [{
+        "id": user.id,
+        "login": user.login,
+        "nickname": user.nickname,
+        "vk_link": user.vk_link,
+        "channel_link": user.channel_link,
+        "balance": user.balance,
+        "admin_level": user.admin_level,
+        "is_approved": user.is_approved,
+        "media_type": user.media_type,
+        "warnings": user.warnings,
+        "previews_used": user.previews_used,
+        "blacklist_until": user.blacklist_until,
+        "created_at": user.created_at
+    } for user in users]
 
 @api_router.get("/admin/reports")
-async def get_all_reports(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
+async def get_all_reports(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    reports = db.query(Report).all()
+    result = []
     
-    reports = await db.reports.find().to_list(1000)
-    # Remove MongoDB _id fields and enrich with user info
     for report in reports:
-        if "_id" in report:
-            del report["_id"]
-        user = await db.users.find_one({"id": report["user_id"]})
-        report["user_nickname"] = user["nickname"] if user else "Unknown"
+        user = db.query(User).filter(User.id == report.user_id).first()
+        result.append({
+            "id": report.id,
+            "user_id": report.user_id,
+            "user_nickname": user.nickname if user else "Unknown",
+            "links": report.links,
+            "status": report.status,
+            "created_at": report.created_at,
+            "admin_comment": report.admin_comment
+        })
     
-    return reports
+    return result
 
 @api_router.post("/admin/reports/{report_id}/approve")
-async def approve_report(report_id: str, report_data: ApproveReportRequest, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+async def approve_report(report_id: str, report_data: ApproveReportRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
     # Get the report
-    report = await db.reports.find_one({"id": report_id})
+    report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     
@@ -671,138 +741,111 @@ async def approve_report(report_id: str, report_data: ApproveReportRequest, curr
         mc_reward = report_data.mc_reward
     else:
         # Default calculation based on total views
-        total_views = sum(link.get("views", 0) for link in report.get("links", []))
+        total_views = sum(link.get("views", 0) for link in report.links)
         mc_reward = max(10, total_views // 100)  # At least 10 MC, 1 MC per 100 views
     
     # Update report status
-    await db.reports.update_one(
-        {"id": report_id},
-        {"$set": {"status": "approved", "admin_comment": report_data.comment, "reviewed_at": datetime.utcnow()}}
-    )
+    report.status = "approved"
+    report.admin_comment = report_data.comment
     
     # Add MC to user balance
-    await db.users.update_one(
-        {"id": report["user_id"]},
-        {"$inc": {"balance": mc_reward}}
-    )
+    user = db.query(User).filter(User.id == report.user_id).first()
+    if user:
+        user.balance += mc_reward
+    
+    db.commit()
     
     return {"message": f"Отчет одобрен и {mc_reward} MC добавлено на баланс пользователя"}
 
-@api_router.get("/admin/users")
-async def get_all_users(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    users = await db.users.find().to_list(1000)
-    # Remove MongoDB _id fields
-    for user in users:
-        if "_id" in user:
-            del user["_id"]
-    return users
-
 @api_router.post("/admin/users/{user_id}/balance")
-async def update_user_balance(user_id: str, amount: int, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
+async def update_user_balance(user_id: str, amount: int, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
-    await db.users.update_one(
-        {"id": user_id},
-        {"$inc": {"balance": amount}}
-    )
+    user.balance += amount
+    db.commit()
     
     return {"message": f"Balance updated by {amount} MC"}
 
 @api_router.post("/admin/users/{user_id}/change-media-type")
-async def change_user_media_type(user_id: str, media_type_data: MediaTypeChange, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = await db.users.find_one({"id": user_id})
+async def change_user_media_type(user_id: str, media_type_data: MediaTypeChangeRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    old_type = user.get("media_type", 0)
+    old_type = user.media_type
     new_type = media_type_data.new_media_type
     
     # Update user media type
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"media_type": new_type}}
+    user.media_type = new_type
+    
+    # Create notification
+    notification = Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title="Изменен тип медиа",
+        message=f"Ваш статус медиа изменен с {'Платное' if old_type == 1 else 'Бесплатное'} на {'Платное' if new_type == 1 else 'Бесплатное'}",
+        type="info"
     )
     
-    # Create notification record
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "type": "media_type_change",
-        "title": "Изменен тип медиа",
-        "message": f"Ваш статус медиа изменен с {'Платное' if old_type == 1 else 'Бесплатное'} на {'Платное' if new_type == 1 else 'Бесплатное'}",
-        "admin_comment": media_type_data.admin_comment or "",
-        "created_at": datetime.utcnow(),
-        "read": False
-    }
-    
-    await db.notifications.insert_one(notification)
+    db.add(notification)
+    db.commit()
     
     type_names = {0: "Бесплатное", 1: "Платное"}
-    user_nickname = user.get('nickname', f'User {user_id[:8]}')
-    return {"message": f"Тип медиа пользователя {user_nickname} изменен с '{type_names[old_type]}' на '{type_names[new_type]}'. Пользователь уведомлен."}
+    return {
+        "message": f"Тип медиа пользователя {user.nickname} изменен с '{type_names[old_type]}' на '{type_names[new_type]}'. Пользователь уведомлен."
+    }
 
 @api_router.get("/notifications")
-async def get_notifications(current_user: dict = Depends(get_current_user)):
-    notifications = await db.notifications.find({"user_id": current_user["id"]}).sort("created_at", -1).to_list(50)
-    # Remove MongoDB _id fields
-    for notification in notifications:
-        if "_id" in notification:
-            del notification["_id"]
-    return notifications
+async def get_notifications(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    notifications = db.query(Notification).filter(Notification.user_id == current_user["id"]).order_by(Notification.created_at.desc()).limit(50).all()
+    return [{
+        "id": notification.id,
+        "title": notification.title,
+        "message": notification.message,
+        "type": notification.type,
+        "read": notification.read,
+        "created_at": notification.created_at
+    } for notification in notifications]
 
 @api_router.post("/notifications/{notification_id}/read")
-async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
-    # Update notification as read
-    result = await db.notifications.update_one(
-        {"id": notification_id, "user_id": current_user["id"]},
-        {"$set": {"read": True}}
-    )
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    notification = db.query(Notification).filter(
+        Notification.id == notification_id,
+        Notification.user_id == current_user["id"]
+    ).first()
     
-    if result.modified_count == 0:
+    if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
+    
+    notification.read = True
+    db.commit()
     
     return {"message": "Notification marked as read"}
 
-class WarningRequest(BaseModel):
-    reason: str
-
 @api_router.post("/admin/users/{user_id}/warning")
-async def give_user_warning(user_id: str, warning_data: WarningRequest, current_user: dict = Depends(get_current_user)):
+async def give_user_warning(user_id: str, warning_data: WarningRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
     """Выдать предупреждение пользователю"""
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = await db.users.find_one({"id": user_id})
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    # Проверяем валидность причины
-    if not warning_data.reason or not warning_data.reason.strip():
-        raise HTTPException(status_code=400, detail="Причина предупреждения обязательна")
-    
     # Увеличиваем счетчик предупреждений
-    user["warnings"] = user.get("warnings", 0) + 1
-    current_warnings = user["warnings"]
+    user.warnings += 1
+    current_warnings = user.warnings
     
     # Проверяем, нужно ли автоматически заблокировать при 3-х предупреждениях
     auto_blocked = False
     if current_warnings >= 3:
         # Автоматическая блокировка на 30 дней при 3-х предупреждениях
-        blacklist_until = datetime.utcnow() + timedelta(days=30)
-        user["blacklist_until"] = blacklist_until
-        user["is_approved"] = False
+        user.blacklist_until = datetime.utcnow() + timedelta(days=30)
+        user.is_approved = False
         auto_blocked = True
         
         # Добавляем IP в черный список, если есть
-        if user.get("registration_ip"):
-            await add_ip_to_blacklist(user["registration_ip"], user["vk_link"], days=30)
+        if user.registration_ip:
+            add_ip_to_blacklist(user.registration_ip, user.vk_link, db, days=30, reason="3 предупреждения")
     
     # Создаем уведомление пользователю
     if auto_blocked:
@@ -815,439 +858,225 @@ async def give_user_warning(user_id: str, warning_data: WarningRequest, current_
         notification_type = "warning"
     
     notification = Notification(
+        id=str(uuid.uuid4()),
         user_id=user_id,
         title=notification_title,
         message=notification_message,
         type=notification_type
     )
-    await db.notifications.insert_one(notification.dict())
+    db.add(notification)
     
-    # Обновляем пользователя в базе данных
-    update_data = {"warnings": current_warnings}
-    if auto_blocked:
-        update_data["blacklist_until"] = user["blacklist_until"]
-        update_data["is_approved"] = False
-    
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": update_data}
-    )
+    db.commit()
     
     return {
-        "message": f"Предупреждение выдано пользователю {user.get('nickname', 'Unknown')}", 
+        "message": f"Предупреждение выдано пользователю {user.nickname}",
         "warnings_count": current_warnings,
         "reason": warning_data.reason,
         "auto_blocked": auto_blocked,
-        "blocked_until": user["blacklist_until"].isoformat() if auto_blocked else None
+        "blocked_until": user.blacklist_until.isoformat() if auto_blocked else None
     }
 
 @api_router.get("/admin/blacklist")
-async def get_blacklist(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+async def get_blacklist(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
     # Get IP blacklist
-    ip_blacklist = await db.ip_blacklist.find().to_list(1000)
-    for entry in ip_blacklist:
-        if "_id" in entry:
-            del entry["_id"]
+    ip_blacklist = db.query(IPBlacklist).all()
     
     # Get blacklisted users
-    blacklisted_users = await db.users.find({
-        "blacklist_until": {"$gt": datetime.utcnow()}
-    }).to_list(1000)
-    
-    for user in blacklisted_users:
-        if "_id" in user:
-            del user["_id"]
+    blacklisted_users = db.query(User).filter(
+        User.blacklist_until.isnot(None),
+        User.blacklist_until > datetime.utcnow()
+    ).all()
     
     return {
-        "ip_blacklist": ip_blacklist,
-        "blacklisted_users": blacklisted_users
+        "ip_blacklist": [{
+            "id": entry.id,
+            "ip_address": entry.ip_address,
+            "vk_link": entry.vk_link,
+            "blacklist_until": entry.blacklist_until,
+            "reason": entry.reason,
+            "created_at": entry.created_at
+        } for entry in ip_blacklist],
+        "blacklisted_users": [{
+            "id": user.id,
+            "nickname": user.nickname,
+            "vk_link": user.vk_link,
+            "blacklist_until": user.blacklist_until,
+            "warnings": user.warnings,
+            "previews_used": user.previews_used,
+            "registration_ip": user.registration_ip
+        } for user in blacklisted_users]
     }
 
 @api_router.post("/admin/users/{user_id}/reset-previews")
-async def reset_user_previews(user_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
+async def reset_user_previews(user_id: str, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"previews_used": 0}}
-    )
+    user.previews_used = 0
+    db.commit()
     
     return {"message": "Предварительные просмотры сброшены"}
 
 @api_router.post("/admin/users/{user_id}/unblacklist")
-async def unblacklist_user(user_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    await db.users.update_one(
-        {"id": user_id},
-        {"$unset": {"blacklist_until": ""}}
-    )
-    
-    return {"message": "Пользователь разблокирован"}
-
-class EmergencyStateRequest(BaseModel):
-    days: int = Field(ge=1, le=365)  # От 1 до 365 дней
-    reason: str
-
-@api_router.post("/admin/users/{user_id}/emergency-state")
-async def set_emergency_state(user_id: str, emergency_data: EmergencyStateRequest, current_user: dict = Depends(get_current_user)):
-    """Выдать ЧС (чрезвычайное состояние) - блокировка IP на регистрацию и вход"""
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = await db.users.find_one({"id": user_id})
+async def unblacklist_user(user_id: str, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user_nickname = user.get("nickname", "Unknown")
-    user_ip = user.get("registration_ip")
-    user_vk = user.get("vk_link", "")
+    # Разблокировать пользователя
+    user.blacklist_until = None
+    user.is_approved = True
+    
+    # Удалить IP из черного списка если есть
+    if user.registration_ip:
+        db.query(IPBlacklist).filter(IPBlacklist.ip_address == user.registration_ip).delete()
+    
+    db.commit()
+    
+    return {"message": "Пользователь разблокирован"}
+
+@api_router.post("/admin/users/{user_id}/emergency-state")
+async def set_emergency_state(user_id: str, emergency_data: EmergencyStateRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    """Выдать ЧС (чрезвычайное состояние) - блокировка IP на регистрацию и вход"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
     # Устанавливаем срок блокировки
     blacklist_until = datetime.utcnow() + timedelta(days=emergency_data.days)
     
     # Блокируем пользователя
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {
-            "blacklist_until": blacklist_until,
-            "is_approved": False
-        }}
-    )
+    user.blacklist_until = blacklist_until
+    user.is_approved = False
     
     # Добавляем IP в черный список, если есть
-    if user_ip:
-        # Проверяем, нет ли уже такой записи
-        existing_ip_blacklist = await db.ip_blacklist.find_one({"ip_address": user_ip})
-        
-        if existing_ip_blacklist:
-            # Обновляем существующую запись
-            await db.ip_blacklist.update_one(
-                {"ip_address": user_ip},
-                {"$set": {
-                    "blacklist_until": blacklist_until,
-                    "reason": f"ЧС: {emergency_data.reason}"
-                }}
-            )
-        else:
-            # Создаем новую запись
-            ip_blacklist = {
-                "id": str(uuid.uuid4()),
-                "ip_address": user_ip,
-                "vk_link": user_vk,
-                "blacklist_until": blacklist_until,
-                "reason": f"ЧС: {emergency_data.reason}",
-                "created_at": datetime.utcnow()
-            }
-            await db.ip_blacklist.insert_one(ip_blacklist)
+    if user.registration_ip:
+        add_ip_to_blacklist(
+            user.registration_ip,
+            user.vk_link,
+            db,
+            days=emergency_data.days,
+            reason=f"ЧС: {emergency_data.reason}"
+        )
     
     # Создаем уведомление пользователю
     notification = Notification(
+        id=str(uuid.uuid4()),
         user_id=user_id,
         title="🚨 ЧРЕЗВЫЧАЙНОЕ СОСТОЯНИЕ",
         message=f"На ваш аккаунт наложено ЧС на {emergency_data.days} дней. Причина: {emergency_data.reason}. Вход и регистрация с вашего IP заблокированы до {blacklist_until.strftime('%d.%m.%Y %H:%M')}",
         type="error"
     )
-    await db.notifications.insert_one(notification.dict())
+    db.add(notification)
+    
+    db.commit()
     
     return {
-        "message": f"ЧС выдано пользователю '{user_nickname}' на {emergency_data.days} дней",
+        "message": f"ЧС выдано пользователю '{user.nickname}' на {emergency_data.days} дней",
         "user_id": user_id,
         "blocked_until": blacklist_until.isoformat(),
         "reason": emergency_data.reason,
-        "ip_blocked": user_ip is not None,
-        "blocked_ip": user_ip
+        "ip_blocked": user.registration_ip is not None,
+        "blocked_ip": user.registration_ip
     }
 
 @api_router.post("/admin/users/{user_id}/remove-from-media")
-async def remove_user_from_media(user_id: str, current_user: dict = Depends(get_current_user)):
+async def remove_user_from_media(user_id: str, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
     """Снять с медиа - полное удаление пользователя из БД"""
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = await db.users.find_one({"id": user_id})
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user_nickname = user.get("nickname", "Unknown")
+    user_nickname = user.nickname
     
     # Удаляем все связанные данные пользователя
     # Удаляем рейтинги пользователя (как выставленные, так и полученные)
-    await db.ratings.delete_many({
-        "$or": [
-            {"user_id": user_id},
-            {"rated_user_id": user_id}
-        ]
-    })
+    db.query(UserRating).filter(
+        (UserRating.user_id == user_id) | (UserRating.rated_user_id == user_id)
+    ).delete()
     
     # Удаляем записи доступа к медиа
-    await db.media_access.delete_many({
-        "$or": [
-            {"user_id": user_id},
-            {"media_user_id": user_id}
-        ]
-    })
+    db.query(MediaAccess).filter(
+        (MediaAccess.user_id == user_id) | (MediaAccess.media_user_id == user_id)
+    ).delete()
     
     # Удаляем уведомления
-    await db.notifications.delete_many({"user_id": user_id})
+    db.query(Notification).filter(Notification.user_id == user_id).delete()
     
     # Удаляем отчеты
-    await db.reports.delete_many({"user_id": user_id})
+    db.query(Report).filter(Report.user_id == user_id).delete()
     
     # Удаляем покупки
-    await db.purchases.delete_many({"user_id": user_id})
+    db.query(Purchase).filter(Purchase.user_id == user_id).delete()
     
     # Удаляем заявки (если есть)
-    await db.applications.delete_many({"login": user.get("login")})
+    db.query(Application).filter(Application.login == user.login).delete()
     
     # Наконец удаляем самого пользователя
-    await db.users.delete_one({"id": user_id})
+    db.delete(user)
+    
+    db.commit()
     
     return {
         "message": f"Пользователь '{user_nickname}' полностью удален из системы",
         "removed_user_id": user_id
     }
 
-@api_router.get("/user/previews")
-async def get_user_previews(current_user: dict = Depends(get_current_user)):
-    previews_used = current_user.get("previews_used", 0)
-    preview_limit = current_user.get("previews_limit", 3)
-    blacklist_until = current_user.get("blacklist_until")
-    
-    return {
-        "previews_used": previews_used,
-        "preview_limit": preview_limit,
-        "previews_remaining": max(0, preview_limit - previews_used),
-        "is_blacklisted": blacklist_until and blacklist_until > datetime.utcnow(),
-        "blacklist_until": blacklist_until.isoformat() if blacklist_until else None
-    }
-
-@api_router.post("/admin/shop/item/{item_id}/image")
-async def update_shop_item_image(item_id: str, image_data: dict, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    image_url = image_data.get("image_url", "")
-    
-    # Validate URL if provided
-    if image_url and not image_url.startswith(('http://', 'https://')):
-        raise HTTPException(status_code=400, detail="Изображение должно быть валидной HTTP/HTTPS ссылкой")
-    
-    # Update shop item
-    result = await db.shop_items.update_one(
-        {"id": item_id},
-        {"$set": {"image_url": image_url}}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Товар не найден")
-    
-    return {"message": "Изображение товара обновлено"}
-
-@api_router.get("/admin/shop/items")
-async def get_admin_shop_items(current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    items = await db.shop_items.find().to_list(1000)
-    # Remove MongoDB _id fields
-    for item in items:
-        if "_id" in item:
-            del item["_id"]
-    return items
-
-# Statistics endpoint
-@api_router.get("/stats")
-async def get_stats():
-    # Check cache first
-    cached_stats = get_cache("basic_stats")
-    if cached_stats:
-        return cached_stats
-    
-    total_media = await db.users.count_documents({"is_approved": True})
-    total_mc_spent = await db.purchases.aggregate([
-        {"$match": {"status": "approved"}},
-        {"$group": {"_id": None, "total": {"$sum": "$total_price"}}}
-    ]).to_list(1)
-    
-    all_users = await db.users.find({"is_approved": True}).to_list(1000)
-    total_mc_current = sum(user.get("balance", 0) for user in all_users)
-    
-    total_spent = total_mc_spent[0]["total"] if total_mc_spent else 0
-    
-    stats = {
-        "total_media": total_media,
-        "total_mc_spent": total_spent,
-        "total_mc_current": total_mc_current
-    }
-    
-    # Cache for 5 minutes using constant
-    set_cache("basic_stats", stats, CACHE_TTL_STATS)
-    return stats
-
-# Advanced Statistics endpoint
-@api_router.get("/stats/advanced")
-async def get_advanced_stats():
-    # Check cache first
-    cached_advanced_stats = get_cache("advanced_stats")
-    if cached_advanced_stats:
-        return cached_advanced_stats
-    # User stats by media type
-    paid_users = await db.users.count_documents({"is_approved": True, "media_type": 1})
-    free_users = await db.users.count_documents({"is_approved": True, "media_type": 0})
-    
-    # Reports stats
-    total_reports = await db.reports.count_documents({})
-    pending_reports = await db.reports.count_documents({"status": "pending"})
-    approved_reports = await db.reports.count_documents({"status": "approved"})
-    
-    # Purchases stats
-    total_purchases = await db.purchases.count_documents({})
-    pending_purchases = await db.purchases.count_documents({"status": "pending"})
-    approved_purchases = await db.purchases.count_documents({"status": "approved"})
-    
-    # Shop items by category
-    shop_categories = await db.shop_items.aggregate([
-        {"$group": {"_id": "$category", "count": {"$sum": 1}, "total_price": {"$sum": "$price"}}}
-    ]).to_list(10)
-    
-    # User warnings distribution
-    warning_stats = await db.users.aggregate([
-        {"$group": {"_id": "$warnings", "count": {"$sum": 1}}}
-    ]).to_list(10)
-    
-    # Monthly reports trend (last 6 months)
-    from datetime import datetime, timedelta
-    six_months_ago = datetime.utcnow() - timedelta(days=180)
-    monthly_reports = await db.reports.aggregate([
-        {"$match": {"created_at": {"$gte": six_months_ago}}},
-        {"$group": {
-            "_id": {
-                "year": {"$year": "$created_at"},
-                "month": {"$month": "$created_at"}
-            },
-            "count": {"$sum": 1}
-        }},
-        {"$sort": {"_id.year": 1, "_id.month": 1}}
-    ]).to_list(12)
-    
-    # Balance distribution
-    balance_ranges = await db.users.aggregate([
-        {"$bucket": {
-            "groupBy": "$balance",
-            "boundaries": [0, 100, 500, 1000, 5000, 10000, float('inf')],
-            "default": "Other",
-            "output": {"count": {"$sum": 1}}
-        }}
-    ]).to_list(12)
-    
-    # Cache for 10 minutes
-    stats = {
-        "user_stats": {
-            "paid_users": paid_users,
-            "free_users": free_users,
-            "total_users": paid_users + free_users
-        },
-        "report_stats": {
-            "total": total_reports,
-            "pending": pending_reports,
-            "approved": approved_reports,
-            "rejected": total_reports - pending_reports - approved_reports
-        },
-        "purchase_stats": {
-            "total": total_purchases,
-            "pending": pending_purchases,
-            "approved": approved_purchases,
-            "rejected": total_purchases - pending_purchases - approved_purchases
-        },
-        "shop_categories": [{"category": item["_id"], "count": item["count"], "total_price": item["total_price"]} for item in shop_categories],
-        "warning_distribution": [{"warnings": item["_id"], "count": item["count"]} for item in warning_stats],
-        "monthly_reports": [{"month": f"{item['_id']['year']}-{item['_id']['month']:02d}", "count": item["count"]} for item in monthly_reports],
-        "balance_ranges": balance_ranges
-    }
-    
-    set_cache("advanced_stats", stats, CACHE_TTL_ADVANCED)
-    return stats
-
-# Initialize shop items
-@api_router.post("/admin/init-shop")
-async def init_shop():
-    # Check if items already exist
-    existing_count = await db.shop_items.count_documents({})
-    if existing_count > 0:
-        return {"message": "Shop already initialized"}
-    
-    shop_items = [
-        {"name": "VIP статус", "description": "Получите VIP статус на месяц с дополнительными привилегиями", "price": 500, "category": "Премиум"},
-        {"name": "Премиум аккаунт", "description": "Расширенные возможности и приоритетная поддержка", "price": 1000, "category": "Премиум"},
-        {"name": "Золотой значок", "description": "Эксклюзивный золотой значок для вашего профиля", "price": 300, "category": "Премиум"},
-        {"name": "Ускорение отчетов", "description": "Быстрое одобрение ваших отчетов в течение 24 часов", "price": 200, "category": "Буст"},
-        {"name": "Двойные медиа-коины", "description": "Получайте в 2 раза больше медиа-коинов за отчеты на неделю", "price": 400, "category": "Буст"},
-        {"name": "Приоритет в очереди", "description": "Ваши заявки обрабатываются в первую очередь", "price": 150, "category": "Буст"},
-        {"name": "Кастомная тема", "description": "Персональная цветовая схема для вашего профиля", "price": 250, "category": "Дизайн"},
-        {"name": "Анимированный аватар", "description": "Возможность использовать GIF в качестве аватара", "price": 350, "category": "Дизайн"},
-        {"name": "Уникальная рамка", "description": "Красивая рамка вокруг вашего профиля", "price": 180, "category": "Дизайн"},
-    ]
-    
-    for item_data in shop_items:
-        item = ShopItem(**item_data)
-        await db.shop_items.insert_one(item.dict())
-    
-    return {"message": "Shop initialized with items"}
-
 # Rating System Endpoints
 @api_router.post("/ratings")
 @limiter.limit("100/day")
-async def rate_user(request: Request, rating_data: RatingRequest, current_user: dict = Depends(get_current_user)):
+async def rate_user(request: Request, rating_data: RatingRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     # Check if user already rated this user
-    existing_rating = await db.ratings.find_one({
-        "user_id": current_user["id"],
-        "rated_user_id": rating_data.rated_user_id
-    })
+    existing_rating = db.query(UserRating).filter(
+        UserRating.user_id == current_user["id"],
+        UserRating.rated_user_id == rating_data.rated_user_id
+    ).first()
     
     if existing_rating:
         # Update existing rating
-        await db.ratings.update_one(
-            {"id": existing_rating["id"]},
-            {"$set": {
-                "rating": rating_data.rating,
-                "comment": rating_data.comment,
-                "created_at": datetime.utcnow()
-            }}
-        )
+        existing_rating.rating = rating_data.rating
+        existing_rating.comment = rating_data.comment
+        existing_rating.created_at = datetime.utcnow()
+        db.commit()
         return {"message": "Rating updated successfully"}
     else:
         # Create new rating
         rating = UserRating(
+            id=str(uuid.uuid4()),
             user_id=current_user["id"],
             rated_user_id=rating_data.rated_user_id,
             rating=rating_data.rating,
             comment=rating_data.comment
         )
-        await db.ratings.insert_one(rating.dict())
+        db.add(rating)
+        db.commit()
         return {"message": "Rating submitted successfully"}
 
 @api_router.get("/ratings/{user_id}")
-async def get_user_ratings(user_id: str):
-    ratings = await db.ratings.find({"rated_user_id": user_id}).to_list(1000)
+async def get_user_ratings(user_id: str, db: Session = Depends(get_db)):
+    ratings = db.query(UserRating).filter(UserRating.rated_user_id == user_id).all()
     
-    # Remove MongoDB _id fields
+    rating_list = []
     for rating in ratings:
-        if "_id" in rating:
-            del rating["_id"]
+        # Get user who gave the rating
+        rater = db.query(User).filter(User.id == rating.user_id).first()
+        rating_list.append({
+            "id": rating.id,
+            "user_id": rating.user_id,
+            "user_nickname": rater.nickname if rater else "Unknown",
+            "rating": rating.rating,
+            "comment": rating.comment,
+            "created_at": rating.created_at
+        })
     
     # Calculate average rating
-    if ratings:
-        avg_rating = sum(r["rating"] for r in ratings) / len(ratings)
+    if rating_list:
+        avg_rating = sum(r["rating"] for r in rating_list) / len(rating_list)
         return {
-            "ratings": ratings,
+            "ratings": rating_list,
             "average_rating": round(avg_rating, 2),
-            "total_ratings": len(ratings)
+            "total_ratings": len(rating_list)
         }
     else:
         return {
@@ -1257,198 +1086,117 @@ async def get_user_ratings(user_id: str):
         }
 
 @api_router.get("/leaderboard")
-async def get_leaderboard():
-    # Get all users with their ratings
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$rated_user_id",
-                "avg_rating": {"$avg": "$rating"},
-                "total_ratings": {"$sum": 1}
-            }
-        },
-        {
-            "$match": {
-                "total_ratings": {"$gte": 1}  # At least 1 rating
-            }
-        },
-        {
-            "$sort": {"avg_rating": -1}
-        },
-        {
-            "$limit": 50
-        }
-    ]
+async def get_leaderboard(db: Session = Depends(get_db)):
+    # Get ratings with user data using raw SQL for better performance
+    from sqlalchemy import text
     
-    leaderboard_data = await db.ratings.aggregate(pipeline).to_list(50)
+    query = text("""
+        SELECT ur.rated_user_id, u.nickname, u.media_type, u.channel_link, 
+               AVG(ur.rating) as avg_rating, COUNT(ur.rating) as total_ratings
+        FROM user_ratings ur 
+        JOIN users u ON ur.rated_user_id = u.id 
+        WHERE u.is_approved = 1 
+        GROUP BY ur.rated_user_id 
+        HAVING COUNT(ur.rating) >= 1 
+        ORDER BY avg_rating DESC 
+        LIMIT 50
+    """)
     
-    # Enrich with user data
+    result = db.execute(query)
     leaderboard = []
-    for item in leaderboard_data:
-        user = await db.users.find_one({"id": item["_id"]})
-        if user and user.get("is_approved"):
-            leaderboard.append({
-                "user_id": item["_id"],
-                "nickname": user["nickname"],
-                "media_type": user["media_type"],
-                "avg_rating": round(item["avg_rating"], 2),
-                "total_ratings": item["total_ratings"],
-                "channel_link": user["channel_link"]
-            })
+    
+    for row in result:
+        leaderboard.append({
+            "user_id": row[0],
+            "nickname": row[1],
+            "media_type": row[2],
+            "channel_link": row[5] if len(row) > 5 else "",
+            "avg_rating": round(float(row[4]), 2),
+            "total_ratings": row[5] if len(row) > 5 else row[4]
+        })
     
     return leaderboard
+
+# Initialize shop items endpoint (for admin use)
+@api_router.post("/admin/init-shop")
+async def init_shop(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    # Check if items already exist
+    existing_count = db.query(ShopItem).count()
+    if existing_count > 0:
+        return {"message": "Shop already initialized"}
     
-# Data Export Endpoints
-@api_router.get("/admin/export/{data_type}")
-async def export_data(data_type: str, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    shop_items = [
+        {"id": "1", "name": "VIP статус", "description": "Получите VIP статус на месяц с дополнительными привилегиями", "price": 500, "category": "Премиум"},
+        {"id": "2", "name": "Премиум аккаунт", "description": "Расширенные возможности и приоритетная поддержка", "price": 1000, "category": "Премиум"},
+        {"id": "3", "name": "Золотой значок", "description": "Эксклюзивный золотой значок для вашего профиля", "price": 300, "category": "Премиум"},
+        {"id": "4", "name": "Ускорение отчетов", "description": "Быстрое одобрение ваших отчетов в течение 24 часов", "price": 200, "category": "Буст"},
+        {"id": "5", "name": "Двойные медиа-коины", "description": "Получайте в 2 раза больше медиа-коинов за отчеты на неделю", "price": 400, "category": "Буст"},
+        {"id": "6", "name": "Приоритет в очереди", "description": "Ваши заявки обрабатываются в первую очередь", "price": 150, "category": "Буст"},
+        {"id": "7", "name": "Кастомная тема", "description": "Персональная цветовая схема для вашего профиля", "price": 250, "category": "Дизайн"},
+        {"id": "8", "name": "Анимированный аватар", "description": "Возможность использовать GIF в качестве аватара", "price": 350, "category": "Дизайн"},
+        {"id": "9", name": "Уникальная рамка", "description": "Красивая рамка вокруг вашего профиля", "price": 180, "category": "Дизайн"},
+    ]
     
-    import csv
-    from io import StringIO
-    from fastapi.responses import Response
+    for item_data in shop_items:
+        item = ShopItem(**item_data)
+        db.add(item)
     
-    if data_type == "users":
-        users = await db.users.find().to_list(10000)
-        output = StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["ID", "Login", "Nickname", "VK Link", "Channel Link", "Balance", "Media Type", "Admin Level", "Is Approved", "Warnings", "Created At"])
-        
-        for user in users:
-            writer.writerow([
-                user.get("id", ""),
-                user.get("login", ""),
-                user.get("nickname", ""),
-                user.get("vk_link", ""),
-                user.get("channel_link", ""),
-                user.get("balance", 0),
-                "Платное" if user.get("media_type") == 1 else "Бесплатное",
-                user.get("admin_level", 0),
-                "Да" if user.get("is_approved") else "Нет",
-                user.get("warnings", 0),
-                user.get("created_at", "").isoformat() if user.get("created_at") else ""
-            ])
-        
-        content = output.getvalue()
-        output.close()
-        
-        return Response(
-            content=content,
-            media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=users.csv"}
-        )
+    db.commit()
     
-    elif data_type == "reports":
-        reports = await db.reports.find().to_list(10000)
-        output = StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["ID", "User ID", "Status", "Links", "Admin Comment", "Created At"])
-        
-        for report in reports:
-            user = await db.users.find_one({"id": report.get("user_id")})
-            links_str = "; ".join([f"{link.get('url', '')} ({link.get('views', 0)} views)" for link in report.get("links", [])])
-            
-            writer.writerow([
-                report.get("id", ""),
-                user.get("nickname", "") if user else report.get("user_id", ""),
-                report.get("status", ""),
-                links_str,
-                report.get("admin_comment", ""),
-                report.get("created_at", "").isoformat() if report.get("created_at") else ""
-            ])
-        
-        content = output.getvalue()
-        output.close()
-        
-        return Response(
-            content=content,
-            media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=reports.csv"}
-        )
+    return {"message": "Shop initialized with items"}
+
+@api_router.get("/admin/shop/items")
+async def get_admin_shop_items(admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    items = db.query(ShopItem).all()
+    return [{
+        "id": item.id,
+        "name": item.name,
+        "description": item.description,
+        "price": item.price,
+        "category": item.category,
+        "image_url": item.image_url,
+        "created_at": item.created_at
+    } for item in items]
+
+@api_router.post("/admin/shop/item/{item_id}/image")
+async def update_shop_item_image(item_id: str, image_data: dict, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    image_url = image_data.get("image_url", "")
     
-    elif data_type == "purchases":
-        purchases = await db.purchases.find().to_list(10000)
-        output = StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["ID", "User", "Item", "Quantity", "Total Price", "Status", "Admin Comment", "Created At"])
-        
-        for purchase in purchases:
-            user = await db.users.find_one({"id": purchase.get("user_id")})
-            item = await db.shop_items.find_one({"id": purchase.get("item_id")})
-            
-            writer.writerow([
-                purchase.get("id", ""),
-                user.get("nickname", "") if user else purchase.get("user_id", ""),
-                item.get("name", "") if item else purchase.get("item_id", ""),
-                purchase.get("quantity", 0),
-                purchase.get("total_price", 0),
-                purchase.get("status", ""),
-                purchase.get("admin_comment", ""),
-                purchase.get("created_at", "").isoformat() if purchase.get("created_at") else ""
-            ])
-        
-        content = output.getvalue()
-        output.close()
-        
-        return Response(
-            content=content,
-            media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=purchases.csv"}
-        )
+    # Validate URL if provided
+    if image_url and not image_url.startswith(('http://', 'https://')):
+        raise HTTPException(status_code=400, detail="Изображение должно быть валидной HTTP/HTTPS ссылкой")
     
-    elif data_type == "ratings":
-        ratings = await db.ratings.find().to_list(10000)
-        output = StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["ID", "Rater", "Rated User", "Rating", "Comment", "Created At"])
-        
-        for rating in ratings:
-            rater = await db.users.find_one({"id": rating.get("user_id")})
-            rated_user = await db.users.find_one({"id": rating.get("rated_user_id")})
-            
-            writer.writerow([
-                rating.get("id", ""),
-                rater.get("nickname", "") if rater else rating.get("user_id", ""),
-                rated_user.get("nickname", "") if rated_user else rating.get("rated_user_id", ""),
-                rating.get("rating", 0),
-                rating.get("comment", ""),
-                rating.get("created_at", "").isoformat() if rating.get("created_at") else ""
-            ])
-        
-        content = output.getvalue()
-        output.close()
-        
-        return Response(
-            content=content,
-            media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=ratings.csv"}
-        )
+    # Update shop item
+    item = db.query(ShopItem).filter(ShopItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Товар не найден")
     
-    else:
-        raise HTTPException(status_code=400, detail="Invalid export type. Options: users, reports, purchases, ratings")
+    item.image_url = image_url
+    db.commit()
+    
+    return {"message": "Изображение товара обновлено"}
+
+# Health check endpoint
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok", "message": "SwagMedia API is running"}
 
 # Include the router in the main app
 app.include_router(api_router)
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Security headers middleware with CSRF protection
+# Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    
-    # Generate CSRF token for non-GET requests if missing
-    if request.method != "GET" and "csrf-token" not in request.headers:
-        # For non-authenticated routes, skip CSRF for now
-        if not request.url.path.startswith("/api/login") and not request.url.path.startswith("/api/register"):
-            # Check for valid CSRF token in session (simplified implementation)
-            pass
     
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -1457,7 +1205,6 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     
     return response
 
@@ -1468,6 +1215,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 Initializing SwagMedia database...")
+    init_database()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
