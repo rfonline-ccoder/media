@@ -957,7 +957,7 @@ async def set_emergency_state(user_id: str, emergency_data: EmergencyStateReques
             user.vk_link,
             db,
             days=emergency_data.days,
-            reason=f"ЧС: {emergency_data.reason}"
+            reason=f"ES: {emergency_data.reason}"
         )
     
     # Создаем уведомление пользователю
