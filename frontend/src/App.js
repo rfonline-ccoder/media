@@ -1413,6 +1413,13 @@ const AdminPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('applications');
+  
+  // Search and Filter States
+  const [userSearch, setUserSearch] = useState('');
+  const [reportFilter, setReportFilter] = useState('all'); // all, pending, approved, rejected
+  const [applicationFilter, setApplicationFilter] = useState('all'); // all, pending, approved, rejected
+  const [sortBy, setSortBy] = useState('date'); // date, name, balance
+  const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && user?.admin_level >= 1) {
