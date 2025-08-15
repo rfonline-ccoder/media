@@ -776,6 +776,9 @@ class WarningRequest(BaseModel):
 @api_router.post("/admin/users/{user_id}/warning")
 async def give_user_warning(user_id: str, warning_data: WarningRequest, current_user: dict = Depends(get_current_user)):
     """Выдать предупреждение пользователю"""
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
