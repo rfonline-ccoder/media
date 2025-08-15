@@ -549,7 +549,7 @@ async def access_media(media_user_id: str, current_user: dict = Depends(get_curr
                 user_obj.vk_link,
                 db,
                 days=15,
-                reason="Превышен лимит предварительных просмотров"
+                reason="Preview limit exceeded"
             )
         
         db.commit()
