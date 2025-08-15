@@ -2997,6 +2997,300 @@ const ShopManagementTab = () => {
   );
 };
 
+// Ratings and Leaderboard Page
+const RatingsPage = () => {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userRatings, setUserRatings] = useState(null);
+  const [ratingForm, setRatingForm] = useState({ rating: 5, comment: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await axios.get(`${API}/leaderboard`);
+      setLeaderboard(response.data);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchUserRatings = async (userId) => {
+    try {
+      const response = await axios.get(`${API}/ratings/${userId}`);
+      setUserRatings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user ratings:', error);
+    }
+  };
+
+  const submitRating = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "❌ Требуется авторизация",
+        description: "Войдите в систему для оценки пользователей",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await axios.post(`${API}/ratings`, {
+        rated_user_id: selectedUser.user_id,
+        rating: ratingForm.rating,
+        comment: ratingForm.comment
+      });
+      
+      toast({
+        title: "✅ Рейтинг отправлен!",
+        description: "Ваша оценка была сохранена",
+      });
+      
+      // Refresh data
+      fetchLeaderboard();
+      fetchUserRatings(selectedUser.user_id);
+      setRatingForm({ rating: 5, comment: '' });
+      
+    } catch (error) {
+      toast({
+        title: "❌ Ошибка при отправке рейтинга",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openUserModal = (user) => {
+    setSelectedUser(user);
+    setUserRatings(null);
+    fetchUserRatings(user.user_id);
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+      />
+    ));
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-4">🏆 Рейтинг пользователей</h1>
+          <p className="text-gray-600">
+            Лидерборд лучших пользователей на основе оценок сообщества
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="text-center">Загрузка...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {leaderboard.map((user, index) => (
+              <Card 
+                key={user.user_id} 
+                className="hover:shadow-lg transition-all duration-300 cursor-pointer relative"
+                onClick={() => openUserModal(user)}
+              >
+                {/* Medal for top 3 */}
+                {index < 3 && (
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    {index === 0 && <div className="bg-yellow-500 w-full h-full rounded-full flex items-center justify-center">🥇</div>}
+                    {index === 1 && <div className="bg-gray-400 w-full h-full rounded-full flex items-center justify-center">🥈</div>}
+                    {index === 2 && <div className="bg-amber-600 w-full h-full rounded-full flex items-center justify-center">🥉</div>}
+                  </div>
+                )}
+
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold text-gray-400">#{index + 1}</span>
+                      {user.nickname}
+                    </div>
+                    <Badge variant={user.media_type === 1 ? 'default' : 'secondary'}>
+                      {user.media_type === 1 ? 'Платное' : 'Бесплатное'}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        {renderStars(Math.round(user.avg_rating))}
+                        <span className="ml-2 font-semibold">{user.avg_rating}</span>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        ({user.total_ratings} оценок)
+                      </span>
+                    </div>
+                    
+                    <div>
+                      <strong>Канал:</strong>{' '}
+                      <a 
+                        href={user.channel_link}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Перейти
+                      </a>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openUserModal(user);
+                      }}
+                    >
+                      Посмотреть детали
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* User Details Modal */}
+        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                {selectedUser?.nickname}
+              </DialogTitle>
+              <DialogDescription>
+                Детальная информация о пользователе и его рейтингах
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedUser && (
+              <div className="space-y-6">
+                {/* User Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-2">
+                        {renderStars(Math.round(selectedUser.avg_rating))}
+                      </div>
+                      <p className="text-2xl font-bold">{selectedUser.avg_rating}</p>
+                      <p className="text-sm text-gray-600">Средний рейтинг</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <p className="text-2xl font-bold">{selectedUser.total_ratings}</p>
+                      <p className="text-sm text-gray-600">Всего оценок</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Rating Form */}
+                {isAuthenticated && user?.id !== selectedUser.user_id && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Оценить пользователя</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label>Оценка (1-5 звезд)</Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-6 w-6 cursor-pointer transition-colors ${
+                                i < ratingForm.rating 
+                                  ? 'fill-yellow-400 text-yellow-400' 
+                                  : 'text-gray-300 hover:text-yellow-200'
+                              }`}
+                              onClick={() => setRatingForm({ ...ratingForm, rating: i + 1 })}
+                            />
+                          ))}
+                          <span className="ml-2">{ratingForm.rating}/5</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="comment">Комментарий (необязательно)</Label>
+                        <Textarea
+                          id="comment"
+                          value={ratingForm.comment}
+                          onChange={(e) => setRatingForm({ ...ratingForm, comment: e.target.value })}
+                          placeholder="Поделитесь своим мнением..."
+                          className="mt-2"
+                        />
+                      </div>
+                      
+                      <Button 
+                        onClick={submitRating} 
+                        disabled={submitting}
+                        className="w-full"
+                      >
+                        {submitting ? 'Отправка...' : 'Отправить оценку'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* User Ratings List */}
+                {userRatings && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Отзывы пользователей</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {userRatings.ratings.length === 0 ? (
+                        <p className="text-gray-600 text-center py-4">Пока нет отзывов</p>
+                      ) : (
+                        <div className="space-y-4 max-h-64 overflow-y-auto">
+                          {userRatings.ratings.map((rating) => (
+                            <div key={rating.id} className="border-b pb-3 last:border-b-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1">
+                                  {renderStars(rating.rating)}
+                                  <span className="ml-2 font-semibold">{rating.rating}/5</span>
+                                </div>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(rating.created_at).toLocaleDateString('ru-RU')}
+                                </span>
+                              </div>
+                              {rating.comment && (
+                                <p className="text-sm text-gray-600 mt-1">{rating.comment}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
