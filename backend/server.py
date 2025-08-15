@@ -685,6 +685,103 @@ async def init_shop():
     
     return {"message": "Shop initialized with items"}
 
+# Rating System Endpoints
+@api_router.post("/ratings")
+async def rate_user(rating_data: UserRating, current_user: dict = Depends(get_current_user)):
+    # Check if user already rated this user
+    existing_rating = await db.ratings.find_one({
+        "user_id": current_user["id"],
+        "rated_user_id": rating_data.rated_user_id
+    })
+    
+    if existing_rating:
+        # Update existing rating
+        await db.ratings.update_one(
+            {"id": existing_rating["id"]},
+            {"$set": {
+                "rating": rating_data.rating,
+                "comment": rating_data.comment,
+                "created_at": datetime.utcnow()
+            }}
+        )
+        return {"message": "Rating updated successfully"}
+    else:
+        # Create new rating
+        rating = UserRating(
+            user_id=current_user["id"],
+            rated_user_id=rating_data.rated_user_id,
+            rating=rating_data.rating,
+            comment=rating_data.comment
+        )
+        await db.ratings.insert_one(rating.dict())
+        return {"message": "Rating submitted successfully"}
+
+@api_router.get("/ratings/{user_id}")
+async def get_user_ratings(user_id: str):
+    ratings = await db.ratings.find({"rated_user_id": user_id}).to_list(1000)
+    
+    # Remove MongoDB _id fields
+    for rating in ratings:
+        if "_id" in rating:
+            del rating["_id"]
+    
+    # Calculate average rating
+    if ratings:
+        avg_rating = sum(r["rating"] for r in ratings) / len(ratings)
+        return {
+            "ratings": ratings,
+            "average_rating": round(avg_rating, 2),
+            "total_ratings": len(ratings)
+        }
+    else:
+        return {
+            "ratings": [],
+            "average_rating": 0,
+            "total_ratings": 0
+        }
+
+@api_router.get("/leaderboard")
+async def get_leaderboard():
+    # Get all users with their ratings
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$rated_user_id",
+                "avg_rating": {"$avg": "$rating"},
+                "total_ratings": {"$sum": 1}
+            }
+        },
+        {
+            "$match": {
+                "total_ratings": {"$gte": 1}  # At least 1 rating
+            }
+        },
+        {
+            "$sort": {"avg_rating": -1}
+        },
+        {
+            "$limit": 50
+        }
+    ]
+    
+    leaderboard_data = await db.ratings.aggregate(pipeline).to_list(50)
+    
+    # Enrich with user data
+    leaderboard = []
+    for item in leaderboard_data:
+        user = await db.users.find_one({"id": item["_id"]})
+        if user and user.get("is_approved"):
+            leaderboard.append({
+                "user_id": item["_id"],
+                "nickname": user["nickname"],
+                "media_type": user["media_type"],
+                "avg_rating": round(item["avg_rating"], 2),
+                "total_ratings": item["total_ratings"],
+                "channel_link": user["channel_link"]
+            })
+    
+    return leaderboard
+
 # Include the router in the main app
 app.include_router(api_router)
 
