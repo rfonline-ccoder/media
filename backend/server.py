@@ -770,8 +770,11 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
     
     return {"message": "Notification marked as read"}
 
+class WarningRequest(BaseModel):
+    reason: str
+
 @api_router.post("/admin/users/{user_id}/warning")
-async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
+async def add_user_warning(user_id: str, warning_data: WarningRequest, current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -780,19 +783,38 @@ async def add_user_warning(user_id: str, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=404, detail="User not found")
     
     new_warnings = user.get("warnings", 0) + 1
+    
+    # Create notification for the user
+    notification = Notification(
+        user_id=user_id,
+        title="⚠️ Предупреждение от администрации",
+        message=f"Вам выдано предупреждение ({new_warnings}/3). Причина: {warning_data.reason}",
+        type="warning"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
     if new_warnings >= 3:
-        # Block user
+        # Block user and create blocking notification
         await db.users.update_one(
             {"id": user_id},
             {"$set": {"warnings": new_warnings, "is_approved": False}}
         )
-        return {"message": "User blocked (3 warnings reached)"}
+        
+        block_notification = Notification(
+            user_id=user_id,
+            title="🚨 Аккаунт заблокирован",
+            message="Ваш аккаунт был заблокирован за получение 3 предупреждений. Обратитесь к администрации для разблокировки.",
+            type="error"
+        )
+        await db.notifications.insert_one(block_notification.dict())
+        
+        return {"message": "User blocked (3 warnings reached)", "warnings": new_warnings}
     else:
         await db.users.update_one(
             {"id": user_id},
             {"$set": {"warnings": new_warnings}}
         )
-        return {"message": f"Warning added. Total warnings: {new_warnings}"}
+        return {"message": f"Warning added. Total warnings: {new_warnings}", "warnings": new_warnings}
 
 @api_router.get("/admin/blacklist")
 async def get_blacklist(current_user: dict = Depends(get_current_user)):
