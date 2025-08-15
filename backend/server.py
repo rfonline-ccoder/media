@@ -169,6 +169,21 @@ class UserRating(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # Helper functions
+def get_cache(key):
+    """Get cached value if not expired"""
+    if key in cache and key in cache_ttl:
+        if datetime.utcnow() < cache_ttl[key]:
+            return cache[key]
+        else:
+            # Expired, remove from cache
+            del cache[key]
+            del cache_ttl[key]
+    return None
+
+def set_cache(key, value, ttl_seconds=300):  # 5 minutes default
+    """Set cache with TTL"""
+    cache[key] = value
+    cache_ttl[key] = datetime.utcnow() + timedelta(seconds=ttl_seconds)
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
