@@ -941,6 +941,33 @@ const ShopPage = () => {
             {filteredItems.map((item) => (
               <Card key={item.id} className="hover:shadow-lg transition-all duration-300 hover:scale-105">
                 <CardHeader className="pb-3">
+                  {/* Image display */}
+                  {item.image_url ? (
+                    <div className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-gray-100">
+                      <img 
+                        src={item.image_url} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden w-full h-full items-center justify-center bg-gray-100 text-gray-500">
+                        <Image className="h-8 w-8" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 mb-3 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <div className="text-center">
+                        <Image className="h-8 w-8 mx-auto text-gray-400 mb-1" />
+                        <span className="text-xs text-gray-500">
+                          {item.category === 'Премиум' ? '🏆' : item.category === 'Буст' ? '🚀' : '🎨'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg font-semibold text-gray-800 leading-tight">
                       {item.name}
