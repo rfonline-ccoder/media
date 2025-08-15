@@ -764,7 +764,7 @@ const ShopPage = () => {
 
 // Reports Page
 const ReportsPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [links, setLinks] = useState([{ url: '', views: 0 }]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -795,6 +795,14 @@ const ReportsPage = () => {
     newLinks[index][field] = field === 'views' ? parseInt(value) || 0 : value;
     setLinks(newLinks);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-xl">Загрузка...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
