@@ -904,19 +904,37 @@ const ShopPage = () => {
 // Reports Page
 const ReportsPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
   const [links, setLinks] = useState([{ url: '', views: 0 }]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API}/reports`, { links: links.filter(link => link.url) });
-      setMessage('Отчет успешно подан!');
+      const validLinks = links.filter(link => link.url);
+      if (validLinks.length === 0) {
+        toast({
+          title: "⚠️ Нет ссылок",
+          description: "Добавьте хотя бы одну ссылку для отчета",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      await axios.post(`${API}/reports`, { links: validLinks });
+      toast({
+        title: "✅ Отчет подан!",
+        description: "Ваш отчет успешно отправлен на рассмотрение администратору.",
+      });
       setLinks([{ url: '', views: 0 }]);
     } catch (error) {
-      setMessage(`Ошибка: ${error.response?.data?.detail || error.message}`);
+      toast({
+        title: "❌ Ошибка отправки",
+        description: error.response?.data?.detail || error.message,
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
