@@ -2022,6 +2022,97 @@ const AdminPage = () => {
     );
   };
 
+  // Функция открытия модального окна предупреждения
+  const openWarningModal = (user) => {
+    setWarningUser(user);
+    setWarningReason('');
+    setShowWarningModal(true);
+  };
+
+  // Функция отправки предупреждения с причиной
+  const submitWarning = async () => {
+    if (!warningReason.trim()) {
+      toast({
+        title: "❌ Ошибка",
+        description: "Укажите причину предупреждения",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const requestData = {
+        reason: warningReason.trim()
+      };
+      
+      const response = await axios.post(`${API}/admin/users/${warningUser.id}/warning`, requestData);
+      const newWarnings = (warningUser?.warnings || 0) + 1;
+      
+      if (newWarnings >= 3) {
+        toast({
+          title: "🚨 Пользователь заблокирован!",
+          description: `${warningUser?.nickname} получил 3-е предупреждение и был автоматически заблокирован`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "⚠️ Предупреждение выдано",
+          description: `${warningUser?.nickname} получил предупреждение (${newWarnings}/3). Причина: ${warningReason}`,
+        });
+      }
+      
+      setShowWarningModal(false);
+      setWarningUser(null);
+      setWarningReason('');
+      fetchAdminData();
+    } catch (error) {
+      console.error('Warning failed:', error);
+      toast({
+        title: "❌ Ошибка предупреждения",
+        description: "Не удалось выдать предупреждение",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Функция открытия модального окна смены типа медиа
+  const openMediaTypeModal = (user) => {
+    setMediaTypeUser(user);
+    setMediaTypeComment('');
+    setShowMediaTypeModal(true);
+  };
+
+  // Функция смены типа медиа
+  const submitMediaTypeChange = async () => {
+    try {
+      const newMediaType = mediaTypeUser.media_type === 1 ? 0 : 1;
+      const requestData = {
+        user_id: mediaTypeUser.id,
+        new_media_type: newMediaType,
+        admin_comment: mediaTypeComment.trim()
+      };
+      
+      await axios.post(`${API}/admin/users/${mediaTypeUser.id}/change-media-type`, requestData);
+      const typeNames = {0: "Бесплатное", 1: "Платное"};
+      toast({
+        title: "🔄 Тип медиа изменен",
+        description: `${mediaTypeUser?.nickname} теперь ${typeNames[newMediaType]} медиа. Пользователь уведомлен.`,
+      });
+      
+      setShowMediaTypeModal(false);
+      setMediaTypeUser(null);
+      setMediaTypeComment('');
+      fetchAdminData();
+    } catch (error) {
+      console.error('Media type change failed:', error);
+      toast({
+        title: "❌ Ошибка смены типа",
+        description: "Не удалось изменить тип медиа",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUserAction = async (userId, action, amount = 0) => {
     try {
       const userItem = users.find(u => u.id === userId);
@@ -2031,24 +2122,8 @@ const AdminPage = () => {
           title: amount > 0 ? "💰 MC добавлены" : "💸 MC списаны",
           description: `${amount > 0 ? 'Добавлено' : 'Списано'} ${Math.abs(amount)} MC пользователю ${userItem?.nickname}`,
         });
-      } else if (action === 'warning') {
-        const response = await axios.post(`${API}/admin/users/${userId}/warning`);
-        const newWarnings = (userItem?.warnings || 0) + 1;
-        
-        if (newWarnings >= 3) {
-          toast({
-            title: "🚨 Пользователь заблокирован!",
-            description: `${userItem?.nickname} получил 3-е предупреждение и был автоматически заблокирован`,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "⚠️ Предупреждение выдано",
-            description: `${userItem?.nickname} получил предупреждение (${newWarnings}/3)`,
-          });
-        }
+        fetchAdminData();
       }
-      fetchAdminData();
     } catch (error) {
       console.error('Action failed:', error);
       toast({
