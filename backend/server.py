@@ -575,6 +575,82 @@ async def get_stats():
         "total_mc_current": total_mc_current
     }
 
+# Advanced Statistics endpoint
+@api_router.get("/stats/advanced")
+async def get_advanced_stats():
+    # User stats by media type
+    paid_users = await db.users.count_documents({"is_approved": True, "media_type": 1})
+    free_users = await db.users.count_documents({"is_approved": True, "media_type": 0})
+    
+    # Reports stats
+    total_reports = await db.reports.count_documents({})
+    pending_reports = await db.reports.count_documents({"status": "pending"})
+    approved_reports = await db.reports.count_documents({"status": "approved"})
+    
+    # Purchases stats
+    total_purchases = await db.purchases.count_documents({})
+    pending_purchases = await db.purchases.count_documents({"status": "pending"})
+    approved_purchases = await db.purchases.count_documents({"status": "approved"})
+    
+    # Shop items by category
+    shop_categories = await db.shop_items.aggregate([
+        {"$group": {"_id": "$category", "count": {"$sum": 1}, "total_price": {"$sum": "$price"}}}
+    ]).to_list(10)
+    
+    # User warnings distribution
+    warning_stats = await db.users.aggregate([
+        {"$group": {"_id": "$warnings", "count": {"$sum": 1}}}
+    ]).to_list(10)
+    
+    # Monthly reports trend (last 6 months)
+    from datetime import datetime, timedelta
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    monthly_reports = await db.reports.aggregate([
+        {"$match": {"created_at": {"$gte": six_months_ago}}},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$created_at"},
+                "month": {"$month": "$created_at"}
+            },
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id.year": 1, "_id.month": 1}}
+    ]).to_list(12)
+    
+    # Balance distribution
+    balance_ranges = await db.users.aggregate([
+        {"$bucket": {
+            "groupBy": "$balance",
+            "boundaries": [0, 100, 500, 1000, 5000, 10000, float('inf')],
+            "default": "Other",
+            "output": {"count": {"$sum": 1}}
+        }}
+    ]).to_list(10)
+    
+    return {
+        "user_stats": {
+            "paid_users": paid_users,
+            "free_users": free_users,
+            "total_users": paid_users + free_users
+        },
+        "report_stats": {
+            "total": total_reports,
+            "pending": pending_reports,
+            "approved": approved_reports,
+            "rejected": total_reports - pending_reports - approved_reports
+        },
+        "purchase_stats": {
+            "total": total_purchases,
+            "pending": pending_purchases,
+            "approved": approved_purchases,
+            "rejected": total_purchases - pending_purchases - approved_purchases
+        },
+        "shop_categories": [{"category": item["_id"], "count": item["count"], "total_price": item["total_price"]} for item in shop_categories],
+        "warning_distribution": [{"warnings": item["_id"], "count": item["count"]} for item in warning_stats],
+        "monthly_reports": [{"month": f"{item['_id']['year']}-{item['_id']['month']:02d}", "count": item["count"]} for item in monthly_reports],
+        "balance_ranges": balance_ranges
+    }
+
 # Initialize shop items
 @api_router.post("/admin/init-shop")
 async def init_shop():
