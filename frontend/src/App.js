@@ -184,6 +184,61 @@ const Navigation = () => {
         <div className="flex items-center space-x-4">
           {isAuthenticated && (
             <>
+              {/* Notifications */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200 relative">
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Уведомления</DialogTitle>
+                    <DialogDescription>
+                      У вас {notifications.length} уведомлений
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="text-center text-gray-500 py-4">
+                        <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p>Нет уведомлений</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            notification.is_read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
+                          }`}
+                          onClick={() => {
+                            if (!notification.is_read) {
+                              markAsRead(notification.id);
+                            }
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-semibold text-sm">{notification.type}</span>
+                            {!notification.is_read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-700">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(notification.created_at).toLocaleString('ru-RU')}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <div className="bg-white/20 rounded-full px-4 py-2 flex items-center space-x-2">
                 <Coins className="h-4 w-4 text-yellow-400" />
                 <span className="text-yellow-400 font-semibold">{user?.balance?.toLocaleString() || 0} MC</span>
