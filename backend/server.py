@@ -1042,6 +1042,139 @@ async def update_shop_item_image(item_id: str, image_data: ItemImageUpdate, admi
     # In a real implementation, you would update the database
     return {"message": f"Изображение для товара {item_id} обновлено", "image_url": image_data.image_url}
 
+# Новые функции для администрирования
+
+@api_router.post("/admin/users/{user_id}/warning")
+async def give_user_warning(user_id: str, warning_data: WarningRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    """Выдать предупреждение пользователю"""
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # Увеличиваем счетчик предупреждений
+    user.warnings += 1
+    
+    # Создаем уведомление пользователю
+    notification = NotificationModel(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title="⚠️ Предупреждение",
+        message=f"Вам выдано предупреждение. Причина: {warning_data.reason}. Всего предупреждений: {user.warnings}",
+        type="warning"
+    )
+    db.add(notification)
+    
+    db.commit()
+    
+    return {
+        "message": f"Предупреждение выдано пользователю {user.nickname}", 
+        "warnings_count": user.warnings,
+        "reason": warning_data.reason
+    }
+
+@api_router.post("/admin/users/{user_id}/remove-from-media")
+async def remove_user_from_media(user_id: str, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    """Снять с медиа - полное удаление пользователя из БД"""
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user_nickname = user.nickname
+    
+    # Удаляем все связанные данные пользователя
+    # Удаляем рейтинги пользователя (как выставленные, так и полученные)
+    db.query(UserRatingModel).filter(
+        (UserRatingModel.user_id == user_id) | (UserRatingModel.rated_user_id == user_id)
+    ).delete()
+    
+    # Удаляем записи доступа к медиа
+    db.query(MediaAccessModel).filter(
+        (MediaAccessModel.user_id == user_id) | (MediaAccessModel.media_user_id == user_id)
+    ).delete()
+    
+    # Удаляем уведомления
+    db.query(NotificationModel).filter(NotificationModel.user_id == user_id).delete()
+    
+    # Удаляем отчеты
+    db.query(ReportModel).filter(ReportModel.user_id == user_id).delete()
+    
+    # Удаляем покупки
+    db.query(PurchaseModel).filter(PurchaseModel.user_id == user_id).delete()
+    
+    # Удаляем заявки (если есть)
+    db.query(ApplicationModel).filter(ApplicationModel.login == user.login).delete()
+    
+    # Наконец удаляем самого пользователя
+    db.delete(user)
+    
+    db.commit()
+    
+    return {
+        "message": f"Пользователь '{user_nickname}' полностью удален из системы",
+        "removed_user_id": user_id
+    }
+
+@api_router.post("/admin/users/{user_id}/emergency-state")
+async def set_emergency_state(user_id: str, emergency_data: EmergencyStateRequest, admin_user: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    """Выдать ЧС (чрезвычайное состояние) - блокировка IP на регистрацию и вход"""
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user_nickname = user.nickname
+    user_ip = user.registration_ip
+    user_vk = user.vk_link
+    
+    # Устанавливаем срок блокировки
+    blacklist_until = datetime.utcnow() + timedelta(days=emergency_data.days)
+    
+    # Блокируем пользователя
+    user.blacklist_until = blacklist_until
+    user.is_approved = False
+    
+    # Добавляем IP в черный список, если есть
+    if user_ip:
+        # Проверяем, нет ли уже такой записи
+        existing_ip_blacklist = db.query(IPBlacklistModel).filter(
+            IPBlacklistModel.ip_address == user_ip
+        ).first()
+        
+        if existing_ip_blacklist:
+            # Обновляем существующую запись
+            existing_ip_blacklist.blacklist_until = blacklist_until
+            existing_ip_blacklist.reason = f"ЧС: {emergency_data.reason}"
+        else:
+            # Создаем новую запись
+            ip_blacklist = IPBlacklistModel(
+                id=str(uuid.uuid4()),
+                ip_address=user_ip,
+                vk_link=user_vk,
+                blacklist_until=blacklist_until,
+                reason=f"ЧС: {emergency_data.reason}"
+            )
+            db.add(ip_blacklist)
+    
+    # Создаем уведомление пользователю
+    notification = NotificationModel(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title="🚨 ЧРЕЗВЫЧАЙНОЕ СОСТОЯНИЕ",
+        message=f"На ваш аккаунт наложено ЧС на {emergency_data.days} дней. Причина: {emergency_data.reason}. Вход и регистрация с вашего IP заблокированы до {blacklist_until.strftime('%d.%m.%Y %H:%M')}",
+        type="error"
+    )
+    db.add(notification)
+    
+    db.commit()
+    
+    return {
+        "message": f"ЧС выдано пользователю '{user_nickname}' на {emergency_data.days} дней",
+        "user_id": user_id,
+        "blocked_until": blacklist_until.isoformat(),
+        "reason": emergency_data.reason,
+        "ip_blocked": user_ip is not None,
+        "blocked_ip": user_ip
+    }
+
 # Include the router
 app.include_router(api_router)
 
