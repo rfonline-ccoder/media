@@ -598,6 +598,11 @@ async def get_admin_shop_items(current_user: dict = Depends(get_current_user)):
 # Statistics endpoint
 @api_router.get("/stats")
 async def get_stats():
+    # Check cache first
+    cached_stats = get_cache("basic_stats")
+    if cached_stats:
+        return cached_stats
+    
     total_media = await db.users.count_documents({"is_approved": True})
     total_mc_spent = await db.purchases.aggregate([
         {"$match": {"status": "approved"}},
@@ -609,15 +614,23 @@ async def get_stats():
     
     total_spent = total_mc_spent[0]["total"] if total_mc_spent else 0
     
-    return {
+    stats = {
         "total_media": total_media,
         "total_mc_spent": total_spent,
         "total_mc_current": total_mc_current
     }
+    
+    # Cache for 5 minutes
+    set_cache("basic_stats", stats, 300)
+    return stats
 
 # Advanced Statistics endpoint
 @api_router.get("/stats/advanced")
 async def get_advanced_stats():
+    # Check cache first
+    cached_advanced_stats = get_cache("advanced_stats")
+    if cached_advanced_stats:
+        return cached_advanced_stats
     # User stats by media type
     paid_users = await db.users.count_documents({"is_approved": True, "media_type": 1})
     free_users = await db.users.count_documents({"is_approved": True, "media_type": 0})
