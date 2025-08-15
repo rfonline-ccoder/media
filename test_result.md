@@ -146,6 +146,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Statistics endpoint working: 3 media, 1,000,799 MC current balance."
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: Statistics API working correctly. Returns proper JSON with total_media: 3, total_mc_current: 1,000,799, total_mc_spent: 0. All expected values confirmed."
         
   - task: "Admin Panel APIs"
     implemented: true
