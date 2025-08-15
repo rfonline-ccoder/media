@@ -755,29 +755,68 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
     
     return {"message": "Notification marked as read"}
 
-@api_router.post("/admin/users/{user_id}/warning")
-async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
+@api_router.get("/admin/blacklist")
+async def get_blacklist(current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    user = await db.users.find_one({"id": user_id})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Get IP blacklist
+    ip_blacklist = await db.ip_blacklist.find().to_list(1000)
+    for entry in ip_blacklist:
+        if "_id" in entry:
+            del entry["_id"]
     
-    new_warnings = user.get("warnings", 0) + 1
-    if new_warnings >= 3:
-        # Block user
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings, "is_approved": False}}
-        )
-        return {"message": "User blocked (3 warnings reached)"}
-    else:
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings}}
-        )
-        return {"message": f"Warning added. Total warnings: {new_warnings}"}
+    # Get blacklisted users
+    blacklisted_users = await db.users.find({
+        "blacklist_until": {"$gt": datetime.utcnow()}
+    }).to_list(1000)
+    
+    for user in blacklisted_users:
+        if "_id" in user:
+            del user["_id"]
+    
+    return {
+        "ip_blacklist": ip_blacklist,
+        "blacklisted_users": blacklisted_users
+    }
+
+@api_router.post("/admin/users/{user_id}/reset-previews")
+async def reset_user_previews(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"previews_used": 0}}
+    )
+    
+    return {"message": "Предварительные просмотры сброшены"}
+
+@api_router.post("/admin/users/{user_id}/unblacklist")
+async def unblacklist_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$unset": {"blacklist_until": ""}}
+    )
+    
+    return {"message": "Пользователь разблокирован"}
+
+@api_router.get("/user/previews")
+async def get_user_previews(current_user: dict = Depends(get_current_user)):
+    previews_used = current_user.get("previews_used", 0)
+    preview_limit = current_user.get("previews_limit", 3)
+    blacklist_until = current_user.get("blacklist_until")
+    
+    return {
+        "previews_used": previews_used,
+        "preview_limit": preview_limit,
+        "previews_remaining": max(0, preview_limit - previews_used),
+        "is_blacklisted": blacklist_until and blacklist_until > datetime.utcnow(),
+        "blacklist_until": blacklist_until.isoformat() if blacklist_until else None
+    }
 
 @api_router.post("/admin/shop/item/{item_id}/image")
 async def update_shop_item_image(item_id: str, image_data: dict, current_user: dict = Depends(get_current_user)):
