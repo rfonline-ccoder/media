@@ -2882,12 +2882,7 @@ const AdminPage = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => {
-                                        const comment = prompt("Комментарий для пользователя (необязательно):");
-                                        if (comment !== null) {
-                                          handleMediaTypeChange(userItem.id, userItem.media_type === 1 ? 0 : 1, comment);
-                                        }
-                                      }}
+                                      onClick={() => openMediaTypeModal(userItem)}
                                     >
                                       {userItem.media_type === 1 ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
                                     </Button>
