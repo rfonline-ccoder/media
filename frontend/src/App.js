@@ -1657,6 +1657,16 @@ const AdminPage = () => {
   });
   const [itemsPerPage] = useState(10);
 
+  // Modal states для предупреждений
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningUser, setWarningUser] = useState(null);
+  const [warningReason, setWarningReason] = useState('');
+
+  // Modal states для переключения типа медиа  
+  const [showMediaTypeModal, setShowMediaTypeModal] = useState(false);
+  const [mediaTypeUser, setMediaTypeUser] = useState(null);
+  const [mediaTypeComment, setMediaTypeComment] = useState('');
+
   useEffect(() => {
     if (isAuthenticated && !isLoading && user?.admin_level >= 1) {
       fetchAdminData();
