@@ -699,11 +699,21 @@ const ShopPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Магазин SwagMedia</h1>
-          <div className="flex items-center justify-center space-x-2">
-            <Coins className="h-6 w-6 text-yellow-600" />
-            <span className="text-xl font-semibold">Ваш баланс: {user?.balance || 0} MC</span>
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Магазин SwagMedia
+          </h1>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="bg-white rounded-lg shadow-lg px-6 py-3 flex items-center space-x-3">
+              <Coins className="h-8 w-8 text-yellow-600" />
+              <div>
+                <div className="text-sm text-gray-500">Ваш баланс</div>
+                <div className="text-2xl font-bold text-gray-900">{user?.balance?.toLocaleString() || 0} MC</div>
+              </div>
+            </div>
           </div>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Приобретайте эксклюзивные товары и услуги за медиа-коины. Зарабатывайте MC подавая отчеты!
+          </p>
         </div>
 
         {message && (
