@@ -345,6 +345,15 @@ const Navigation = () => {
               <span>Медиа</span>
             </a>
 
+            <a 
+              href="/ratings" 
+              className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Star className="h-5 w-5" />
+              <span>Рейтинги</span>
+            </a>
+
             {isAuthenticated && (
               <>
                 {/* Balance on Mobile */}
