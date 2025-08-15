@@ -234,9 +234,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Authentication Context Fix"
-    - "Shop Items Display"
-    - "Admin Panel Tabs"
+    - "Media Type Switching in Admin"
+    - "Form Validation Backend"
+    - "Custom MC Rewards for Reports"
+    - "Shop Item Images Management"
+    - "Form Validation Frontend"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
