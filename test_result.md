@@ -186,15 +186,18 @@ backend:
         
   - task: "IP блокировка и VK трекинг"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлена система проверки IP и VK блокировки при регистрации. Функции check_ip_blacklist(), check_vk_blacklist(), add_ip_to_blacklist(), handle_preview_limit_exceeded() для полного цикла блокировки."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система IP и VK блокировки работает корректно! Функции check_ip_blacklist() и check_vk_blacklist() правильно проверяют заблокированные IP и VK ссылки при регистрации. При превышении лимита предпросмотров 3/3 пользователь автоматически блокируется на 15 дней, его IP и VK данные добавляются в черный список через функции add_ip_to_blacklist() и handle_preview_limit_exceeded(). Новые регистрации с теми же данными корректно блокируются."
         
   - task: "Обновленный медиа-лист с доступом"
     implemented: true
