@@ -165,6 +165,7 @@ class Priority45Tester:
         
         try:
             # Test 1: Submit Rating (POST /api/ratings)
+            # Note: user_id is set automatically from authenticated user
             rating_data = {
                 "rated_user_id": self.test_user_id,
                 "rating": 5,
