@@ -1633,6 +1633,10 @@ const AdminPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          
+          <TabsContent value="shop" className="mt-6">
+            <ShopManagementTab />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
