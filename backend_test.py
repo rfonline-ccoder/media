@@ -660,6 +660,16 @@ class BackendTester:
         
         # Run tests in order
         self.test_authentication()
+        
+        # Priority 2 Feature Tests
+        self.test_priority2_media_type_switching()
+        self.test_priority2_form_validation()
+        self.test_priority2_custom_mc_rewards()
+        self.test_priority2_shop_images()
+        self.test_priority2_notifications()
+        self.test_priority2_report_validation()
+        
+        # Original tests
         self.test_shop_api()
         self.test_statistics_api()
         self.test_admin_endpoints()
