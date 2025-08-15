@@ -594,38 +594,95 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl">Профиль: {user.nickname}</CardTitle>
+        <Card className="mb-6 bg-gradient-to-br from-blue-50 to-purple-50 border-0 shadow-xl">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                👤 {user.nickname}
+              </CardTitle>
+              <div className="flex space-x-2">
+                <Badge variant={user.media_type === 1 ? 'default' : 'secondary'} className="text-sm">
+                  {user.media_type === 1 ? '💎 Платное медиа' : '🆓 Бесплатное медиа'}
+                </Badge>
+                {user.admin_level > 0 && (
+                  <Badge variant="destructive" className="text-sm">
+                    🛡️ Администратор
+                  </Badge>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">Основная информация</h3>
-                <div className="space-y-2">
-                  <div><strong>Канал:</strong> <a href={user.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Перейти</a></div>
-                  <div><strong>VK:</strong> <a href={user.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Профиль</a></div>
-                  <div>
-                    <strong>Тип медиа:</strong>{' '}
-                    <Badge variant={user.media_type === 1 ? 'default' : 'secondary'}>
-                      {user.media_type === 1 ? 'Платное' : 'Бесплатное'}
-                    </Badge>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-gray-800 mb-4">📊 Основная информация</h3>
+                <div className="space-y-3">
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">📺</span>
+                      <div>
+                        <strong>Канал:</strong> 
+                        <a href={user.channel_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-2">
+                          Перейти →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">👥</span>
+                      <div>
+                        <strong>VK профиль:</strong> 
+                        <a href={user.vk_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-2">
+                          Открыть →
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div>
-                <h3 className="font-semibold mb-2">Статистика</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Coins className="h-4 w-4 text-yellow-600" />
-                    <span><strong>Медиа-коины:</strong> {user.balance} MC</span>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-gray-800 mb-4">📈 Ваша статистика</h3>
+                <div className="space-y-3">
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Coins className="h-8 w-8 text-yellow-600" />
+                        <div>
+                          <div className="text-sm text-gray-500">Медиа-коины</div>
+                          <div className="text-2xl font-bold text-gray-900">{user.balance?.toLocaleString() || 0} MC</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span><strong>Предупреждения:</strong> {user.warnings || 0}/3</span>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <AlertTriangle className={`h-8 w-8 ${user.warnings >= 2 ? 'text-red-600' : 'text-gray-400'}`} />
+                        <div>
+                          <div className="text-sm text-gray-500">Предупреждения</div>
+                          <div className={`text-2xl font-bold ${user.warnings >= 2 ? 'text-red-600' : 'text-gray-900'}`}>
+                            {user.warnings || 0}/3
+                          </div>
+                        </div>
+                      </div>
+                      {user.warnings >= 2 && (
+                        <Badge variant="destructive">Опасная зона!</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div><strong>Отчетов подано:</strong> {reports.length}</div>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <div className="text-sm text-gray-500">Отчетов подано</div>
+                        <div className="text-2xl font-bold text-gray-900">{reports.length}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
