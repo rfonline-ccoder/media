@@ -129,12 +129,14 @@ class ReportCreate(BaseModel):
                 raise ValueError('Введите корректный URL')
         return v
 
-class ApplicationResponse(BaseModel):
-    id: str
-    type: str
-    data: dict
-    status: str
-    created_at: datetime
+class MediaTypeChange(BaseModel):
+    user_id: str
+    new_media_type: int  # 0 = free, 1 = paid
+    admin_comment: Optional[str] = None
+
+class ApproveReportRequest(BaseModel):
+    comment: Optional[str] = ""
+    mc_reward: Optional[int] = None  # Custom MC amount
 
 # Helper functions
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
