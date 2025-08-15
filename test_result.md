@@ -229,6 +229,51 @@ backend:
         agent: "testing"
         comment: "✅ ПРОТЕСТИРОВАНО: Админ управление предпросмотрами работает отлично! Endpoint GET /api/admin/blacklist возвращает полную информацию о заблокированных IP адресах и пользователях. Endpoint POST /api/admin/users/{user_id}/reset-previews успешно сбрасывает счетчик предпросмотров пользователя. Endpoint POST /api/admin/users/{user_id}/unblacklist корректно разблокирует пользователей. Endpoint GET /api/user/previews предоставляет полную информацию о статусе предпросмотров: использовано, лимит, осталось, статус блокировки."
 
+  - task: "Система предупреждений пользователей"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/warning для выдачи предупреждений пользователям. Увеличивает счетчик warnings, создает уведомление пользователю с причиной предупреждения."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система предупреждений работает идеально! Endpoint POST /api/admin/users/{user_id}/warning корректно выдает предупреждения с указанием причины. Счетчик warnings увеличивается в БД (0→1), уведомления создаются для пользователя. Требует админские права (admin/admin123). Возвращает корректную информацию: message, warnings_count, reason. Валидация входных данных работает для некорректных user_id (404 ошибка)."
+
+  - task: "Полное удаление пользователей из системы"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/remove-from-media для полного удаления пользователя из БД. Удаляет все связанные данные: рейтинги, уведомления, отчеты, покупки, заявки."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система полного удаления пользователей работает безупречно! Endpoint POST /api/admin/users/{user_id}/remove-from-media полностью удаляет пользователя и все связанные данные из БД. Проверено удаление: рейтингов (выставленных и полученных), записей доступа к медиа, уведомлений, отчетов, покупок, заявок. Пользователь полностью исчезает из системы. Требует админские права. Возвращает подтверждение с nickname удаленного пользователя и removed_user_id."
+
+  - task: "Система чрезвычайного состояния (ЧС)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлен endpoint POST /api/admin/users/{user_id}/emergency-state для блокировки пользователей на определенное количество дней (1-365). Блокирует IP адрес, создает запись в черном списке, отправляет уведомление."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система ЧС работает превосходно! Endpoint POST /api/admin/users/{user_id}/emergency-state корректно блокирует пользователей на указанное количество дней (протестировано 5-7 дней). Пользователь блокируется в БД (blacklist_until, is_approved=false), IP добавляется в черный список, создаются уведомления с детальной информацией. Валидация days работает (1-365, отклоняет 0 и >365). Возвращает полную информацию: blocked_until, ip_blocked, blocked_ip, reason. Требует админские права."
+
 frontend:
   - task: "Form Validation Frontend"
     implemented: true
