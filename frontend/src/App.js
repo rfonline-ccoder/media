@@ -1643,6 +1643,139 @@ const AdminPage = () => {
   );
 };
 
+// Shop Management Component for Admin
+const ShopManagementTab = () => {
+  const { toast } = useToast();
+  const [shopItems, setShopItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchShopItems();
+  }, []);
+
+  const fetchShopItems = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/shop/items`);
+      setShopItems(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch shop items:', error);
+      toast({
+        title: "❌ Ошибка загрузки",
+        description: "Не удалось загрузить товары магазина",
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const updateItemImage = async (itemId, imageUrl) => {
+    try {
+      await axios.post(`${API}/admin/shop/item/${itemId}/image`, { image_url: imageUrl });
+      toast({
+        title: "✅ Изображение обновлено",
+        description: "Изображение товара успешно обновлено",
+      });
+      fetchShopItems();
+    } catch (error) {
+      console.error('Failed to update image:', error);
+      toast({
+        title: "❌ Ошибка обновления",
+        description: error.response?.data?.detail || "Не удалось обновить изображение",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center">Загрузка товаров...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Управление товарами магазина</CardTitle>
+        <CardDescription>Добавление и редактирование изображений товаров</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {shopItems.map((item) => (
+            <Card key={item.id} className="p-4">
+              <div className="space-y-3">
+                {/* Current Image */}
+                <div className="w-full h-24 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {item.image_url ? (
+                    <img 
+                      src={item.image_url} 
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  {!item.image_url && (
+                    <div className="text-center">
+                      <Image className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+                      <span className="text-xs text-gray-500">Нет изображения</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Item Info */}
+                <div>
+                  <h4 className="font-semibold text-sm">{item.name}</h4>
+                  <p className="text-xs text-gray-600 mb-1">{item.category}</p>
+                  <p className="text-xs font-semibold text-blue-600">{item.price} MC</p>
+                </div>
+                
+                {/* Image URL Input */}
+                <div className="flex space-x-1">
+                  <Input
+                    id={`image-${item.id}`}
+                    placeholder="URL изображения"
+                    defaultValue={item.image_url || ''}
+                    className="flex-1 text-xs"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      const imageUrl = document.getElementById(`image-${item.id}`).value;
+                      updateItemImage(item.id, imageUrl);
+                    }}
+                    className="px-2"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {/* Remove Image Button */}
+                {item.image_url && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => updateItemImage(item.id, '')}
+                    className="w-full text-xs"
+                  >
+                    Убрать изображение
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+        
+        {shopItems.length === 0 && (
+          <div className="text-center text-gray-500 py-8">
+            <div className="text-4xl mb-2">🛒</div>
+            <div>Товары не найдены. Инициализируйте магазин сначала.</div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
