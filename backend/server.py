@@ -18,9 +18,15 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import asyncio
 
-# Simple in-memory cache
+# Advanced caching system with different TTL for different data types
 cache = {}
 cache_ttl = {}
+
+# Cache constants
+CACHE_TTL_STATS = 300      # 5 minutes for statistics
+CACHE_TTL_ADVANCED = 600   # 10 minutes for advanced stats  
+CACHE_TTL_USERS = 120      # 2 minutes for user data
+CACHE_TTL_SHOP = 1800      # 30 minutes for shop items
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
