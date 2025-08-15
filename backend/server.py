@@ -178,6 +178,11 @@ class UserRating(BaseModel):
     comment: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class RatingRequest(BaseModel):
+    rated_user_id: str
+    rating: int = Field(ge=1, le=5)  # 1-5 stars
+    comment: Optional[str] = None
+
 class IPBlacklist(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     ip_address: str
