@@ -135,136 +135,277 @@ const Navigation = () => {
   };
 
   return (
-    <nav className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 text-white p-4 shadow-2xl">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="bg-white/20 p-2 rounded-full">
-            <Activity className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-            SwagMedia
-          </h1>
-        </div>
-        
-        <div className="hidden md:flex items-center space-x-8">
-          <a href="/" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-            <Home className="h-4 w-4" />
-            <span>Главная</span>
-          </a>
-          
-          <a href="/media-list" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-            <Users className="h-4 w-4" />
-            <span>Медиа</span>
-          </a>
-
-          {isAuthenticated && (
-            <>
-              <a href="/profile" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-                <User className="h-4 w-4" />
-                <span>Профиль</span>
-              </a>
-              
-              <a href="/shop" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-                <ShoppingCart className="h-4 w-4" />
-                <span>Магазин</span>
-              </a>
-              
-              <a href="/reports" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-                <FileText className="h-4 w-4" />
-                <span>Отчеты</span>
-              </a>
-
-              {user?.admin_level >= 1 && (
-                <a href="/admin" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
-                  <Shield className="h-4 w-4" />
-                  <span>Админ</span>
-                </a>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {isAuthenticated && (
-            <>
-              {/* Notifications */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200 relative">
-                    <Bell className="h-4 w-4" />
-                    {unreadCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Уведомления</DialogTitle>
-                    <DialogDescription>
-                      У вас {notifications.length} уведомлений
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="text-center text-gray-500 py-4">
-                        <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p>Нет уведомлений</p>
-                      </div>
-                    ) : (
-                      notifications.map((notification) => (
-                        <div 
-                          key={notification.id} 
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            notification.is_read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
-                          }`}
-                          onClick={() => {
-                            if (!notification.is_read) {
-                              markAsRead(notification.id);
-                            }
-                          }}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold text-sm">{notification.type}</span>
-                            {!notification.is_read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-700">{notification.message}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(notification.created_at).toLocaleString('ru-RU')}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <div className="bg-white/20 rounded-full px-4 py-2 flex items-center space-x-2">
-                <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-yellow-400 font-semibold">{user?.balance?.toLocaleString() || 0} MC</span>
-              </div>
-
-              <Button variant="ghost" size="sm" onClick={logout} className="hover:bg-white/20 transition-all duration-200">
-                Выйти
-              </Button>
-            </>
-          )}
-
-          {!isAuthenticated && (
-            <div className="flex space-x-3">
-              <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200" asChild>
-                <a href="/login">Войти</a>
-              </Button>
-              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 hover:bg-white/30 transition-all duration-200" asChild>
-                <a href="/register">Регистрация</a>
-              </Button>
+    <nav className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 text-white shadow-2xl">
+      {/* Desktop Navigation */}
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between items-center py-4">
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 p-2 rounded-full">
+              <Activity className="h-8 w-8 text-white" />
             </div>
-          )}
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              SwagMedia
+            </h1>
+          </div>
+          
+          {/* Desktop Menu */}
+          <div className="hidden lg:flex items-center space-x-8">
+            <a href="/" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+              <Home className="h-4 w-4" />
+              <span>Главная</span>
+            </a>
+            
+            <a href="/media-list" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+              <Users className="h-4 w-4" />
+              <span>Медиа</span>
+            </a>
+
+            {isAuthenticated && (
+              <>
+                <a href="/profile" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+                  <User className="h-4 w-4" />
+                  <span>Профиль</span>
+                </a>
+                
+                <a href="/shop" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Магазин</span>
+                </a>
+                
+                <a href="/reports" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+                  <FileText className="h-4 w-4" />
+                  <span>Отчеты</span>
+                </a>
+
+                {user?.admin_level >= 1 && (
+                  <a href="/admin" className="hover:text-blue-200 flex items-center space-x-2 transition-all duration-200 hover:scale-105">
+                    <Shield className="h-4 w-4" />
+                    <span>Админ</span>
+                  </a>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Right Side - Notifications, Balance, Auth */}
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            {isAuthenticated && (
+              <>
+                {/* Notifications */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200 relative">
+                      <Bell className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Уведомления</DialogTitle>
+                      <DialogDescription>
+                        У вас {notifications.length} уведомлений
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="text-center text-gray-500 py-4">
+                          <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p>Нет уведомлений</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div 
+                            key={notification.id} 
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                              notification.is_read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
+                            }`}
+                            onClick={() => {
+                              if (!notification.is_read) {
+                                markAsRead(notification.id);
+                              }
+                            }}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-semibold text-sm">{notification.type}</span>
+                              {!notification.is_read && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-700">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(notification.created_at).toLocaleString('ru-RU')}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Balance - Hidden on small screens */}
+                <div className="hidden sm:flex bg-white/20 rounded-full px-3 py-2 items-center space-x-2">
+                  <Coins className="h-4 w-4 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold text-sm">
+                    {user?.balance?.toLocaleString() || 0} MC
+                  </span>
+                </div>
+
+                {/* Logout - Hidden on mobile */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={logout} 
+                  className="hidden sm:block hover:bg-white/20 transition-all duration-200"
+                >
+                  Выйти
+                </Button>
+              </>
+            )}
+
+            {!isAuthenticated && (
+              <div className="hidden sm:flex space-x-3">
+                <Button variant="ghost" size="sm" className="hover:bg-white/20 transition-all duration-200" asChild>
+                  <a href="/login">Войти</a>
+                </Button>
+                <Button variant="outline" size="sm" className="bg-white/20 border-white/30 hover:bg-white/30 transition-all duration-200" asChild>
+                  <a href="/register">Регистрация</a>
+                </Button>
+              </div>
+            )}
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden hover:bg-white/20 transition-all duration-200"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-black/20 backdrop-blur-sm border-t border-white/20">
+          <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
+            {/* Navigation Links */}
+            <a 
+              href="/" 
+              className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Home className="h-5 w-5" />
+              <span>Главная</span>
+            </a>
+            
+            <a 
+              href="/media-list" 
+              className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Users className="h-5 w-5" />
+              <span>Медиа</span>
+            </a>
+
+            {isAuthenticated && (
+              <>
+                {/* Balance on Mobile */}
+                <div className="flex items-center space-x-3 py-2 px-3 bg-white/10 rounded-lg">
+                  <Coins className="h-5 w-5 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold">Баланс: {user?.balance?.toLocaleString() || 0} MC</span>
+                </div>
+
+                <a 
+                  href="/profile" 
+                  className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <User className="h-5 w-5" />
+                  <span>Профиль</span>
+                </a>
+                
+                <a 
+                  href="/shop" 
+                  className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Магазин</span>
+                </a>
+                
+                <a 
+                  href="/reports" 
+                  className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FileText className="h-5 w-5" />
+                  <span>Отчеты</span>
+                </a>
+
+                {user?.admin_level >= 1 && (
+                  <a 
+                    href="/admin" 
+                    className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-white/10 transition-all"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Shield className="h-5 w-5" />
+                    <span>Админ панель</span>
+                  </a>
+                )}
+
+                <div className="border-t border-white/20 pt-3">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      logout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full justify-start hover:bg-white/10 transition-all duration-200"
+                  >
+                    <LogIn className="h-5 w-5 mr-3" />
+                    Выйти
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {!isAuthenticated && (
+              <div className="space-y-2 border-t border-white/20 pt-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start hover:bg-white/10 transition-all duration-200" 
+                  asChild
+                >
+                  <a href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <LogIn className="h-5 w-5 mr-3" />
+                    Войти
+                  </a>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start bg-white/20 border-white/30 hover:bg-white/30 transition-all duration-200" 
+                  asChild
+                >
+                  <a href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <UserPlus className="h-5 w-5 mr-3" />
+                    Регистрация
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
