@@ -1719,6 +1719,12 @@ const AdminPage = () => {
   const [warningUser, setWarningUser] = useState(null);
   const [warningReason, setWarningReason] = useState('');
 
+  // Modal states для чрезвычайного состояния
+  const [showEmergencyStateModal, setShowEmergencyStateModal] = useState(false);
+  const [emergencyUser, setEmergencyUser] = useState(null);
+  const [emergencyDays, setEmergencyDays] = useState(15);
+  const [emergencyReason, setEmergencyReason] = useState('');
+
   // Modal states для переключения типа медиа  
   const [showMediaTypeModal, setShowMediaTypeModal] = useState(false);
   const [mediaTypeUser, setMediaTypeUser] = useState(null);
