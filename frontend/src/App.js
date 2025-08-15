@@ -1849,6 +1849,222 @@ const AdminPage = () => {
             <TabsTrigger value="shop">Магазин</TabsTrigger>
           </TabsList>
 
+          {/* Statistics Dashboard Tab */}
+          <TabsContent value="stats" className="mt-6">
+            <div className="space-y-6">
+              {/* Key Metrics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Всего пользователей</p>
+                        <p className="text-2xl font-bold text-blue-600">{stats?.total_media || 0}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Потрачено MC</p>
+                        <p className="text-2xl font-bold text-green-600">{stats?.total_mc_spent?.toLocaleString() || 0}</p>
+                      </div>
+                      <Coins className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Текущие балансы</p>
+                        <p className="text-2xl font-bold text-purple-600">{stats?.total_mc_current?.toLocaleString() || 0}</p>
+                      </div>
+                      <Activity className="h-8 w-8 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Всего отчетов</p>
+                        <p className="text-2xl font-bold text-orange-600">{advancedStats?.report_stats?.total || 0}</p>
+                      </div>
+                      <FileText className="h-8 w-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* User Types Pie Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Типы пользователей
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Платные', value: advancedStats?.user_stats?.paid_users || 0, fill: '#3b82f6' },
+                              { name: 'Бесплатные', value: advancedStats?.user_stats?.free_users || 0, fill: '#10b981' }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          />
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Reports Status Bar Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Статистика отчетов
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={[
+                            { name: 'Всего', count: advancedStats?.report_stats?.total || 0, fill: '#3b82f6' },
+                            { name: 'Ожидают', count: advancedStats?.report_stats?.pending || 0, fill: '#f59e0b' },
+                            { name: 'Одобрено', count: advancedStats?.report_stats?.approved || 0, fill: '#10b981' },
+                            { name: 'Отклонено', count: advancedStats?.report_stats?.rejected || 0, fill: '#ef4444' }
+                          ]}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="count" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Monthly Reports Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Тренд отчетов по месяцам
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={advancedStats?.monthly_reports || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Shop Categories */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5" />
+                      Категории товаров
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={advancedStats?.shop_categories || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="category" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="count" fill="#8b5cf6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Export Buttons */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    Экспорт данных
+                  </CardTitle>
+                  <CardDescription>
+                    Скачивайте данные в формате CSV для анализа
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadExport('users')}
+                      className="w-full"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Пользователи
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadExport('reports')}
+                      className="w-full"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Отчеты
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadExport('purchases')}
+                      className="w-full"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Покупки
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadExport('ratings')}
+                      className="w-full"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Рейтинги
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="applications" className="mt-6">
             <Card>
               <CardHeader>
