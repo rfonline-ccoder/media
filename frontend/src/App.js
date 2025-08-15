@@ -102,6 +102,34 @@ const AuthProvider = ({ children }) => {
 // Navigation Component
 const Navigation = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [isAuthenticated]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get(`${API}/notifications`);
+      const notifs = response.data || [];
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.is_read).length);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.post(`${API}/notifications/${notificationId}/read`);
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
 
   return (
     <nav className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 text-white p-4 shadow-2xl">
