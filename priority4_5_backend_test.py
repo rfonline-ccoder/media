@@ -13,7 +13,7 @@ from datetime import datetime
 from io import StringIO
 
 # Configuration
-BASE_URL = "https://backend-check-app.preview.emergentagent.com/api"
+BASE_URL = "https://dev-deploy-config.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class Priority45Tester:

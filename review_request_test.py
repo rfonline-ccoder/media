@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://backend-check-app.preview.emergentagent.com/api"
+BASE_URL = "https://dev-deploy-config.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "ba7a7am1ZX3"}
 
 class ReviewRequestTester:
