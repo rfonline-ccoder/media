@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://backend-checker.preview.emergentagent.com/api"
+BASE_URL = "https://swagmedia-deploy.preview.emergentagent.com/api"
 ADMIN_CREDENTIALS = {"login": "admin", "password": "admin123"}
 
 class PreviewSystemTester:
