@@ -1448,17 +1448,21 @@ const AdminPage = () => {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [appsRes, purchasesRes, reportsRes, usersRes] = await Promise.all([
+      const [appsRes, purchasesRes, reportsRes, usersRes, statsRes, advancedStatsRes] = await Promise.all([
         axios.get(`${API}/admin/applications`),
         axios.get(`${API}/admin/purchases`),
         axios.get(`${API}/admin/reports`),
-        axios.get(`${API}/admin/users`)
+        axios.get(`${API}/admin/users`),
+        axios.get(`${API}/stats`),
+        axios.get(`${API}/stats/advanced`)
       ]);
       
       setApplications(appsRes.data || []);
       setPurchases(purchasesRes.data || []);
       setReports(reportsRes.data || []);
       setUsers(usersRes.data || []);
+      setStats(statsRes.data || {});
+      setAdvancedStats(advancedStatsRes.data || {});
       
       const pendingCount = (appsRes.data || []).filter(app => app.status === 'pending').length;
       if (pendingCount > 0) {
