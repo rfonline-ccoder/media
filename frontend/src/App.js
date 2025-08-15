@@ -2081,7 +2081,7 @@ const AdminPage = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/admin/users/${user.id}/remove-from-media`, {
+      const response = await fetch(`${API}/admin/users/${user.id}/remove-from-media`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
