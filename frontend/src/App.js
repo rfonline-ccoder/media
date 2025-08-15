@@ -880,7 +880,7 @@ const ReportsPage = () => {
 
 // Admin Page
 const AdminPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [applications, setApplications] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [reports, setReports] = useState([]);
@@ -889,10 +889,10 @@ const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('applications');
 
   useEffect(() => {
-    if (isAuthenticated && user?.admin_level >= 1) {
+    if (isAuthenticated && !isLoading && user?.admin_level >= 1) {
       fetchAdminData();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, isLoading, user]);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -961,6 +961,14 @@ const AdminPage = () => {
       console.error('Action failed:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-xl">Загрузка...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || user?.admin_level < 1) {
     return <Navigate to="/" />;
