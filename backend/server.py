@@ -440,8 +440,8 @@ async def update_user_balance(user_id: str, amount: int, current_user: dict = De
     
     return {"message": f"Balance updated by {amount} MC"}
 
-@api_router.post("/admin/users/{user_id}/warning")
-async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
+@api_router.post("/admin/users/{user_id}/change-media-type")
+async def change_user_media_type(user_id: str, media_type_data: MediaTypeChange, current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -449,20 +449,48 @@ async def add_user_warning(user_id: str, current_user: dict = Depends(get_curren
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    new_warnings = user.get("warnings", 0) + 1
-    if new_warnings >= 3:
-        # Block user
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings, "is_approved": False}}
-        )
-        return {"message": "User blocked (3 warnings reached)"}
-    else:
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings}}
-        )
-        return {"message": f"Warning added. Total warnings: {new_warnings}"}
+    old_type = user.get("media_type", 0)
+    new_type = media_type_data.new_media_type
+    
+    # Update user media type
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"media_type": new_type}}
+    )
+    
+    # Create notification record
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": "media_type_change",
+        "title": "Изменен тип медиа",
+        "message": f"Ваш статус медиа изменен с {'Платное' if old_type == 1 else 'Бесплатное'} на {'Платное' if new_type == 1 else 'Бесплатное'}",
+        "admin_comment": media_type_data.admin_comment or "",
+        "created_at": datetime.utcnow(),
+        "read": False
+    }
+    
+    await db.notifications.insert_one(notification)
+    
+    type_names = {0: "Бесплатное", 1: "Платное"}
+    return {"message": f"Тип медиа пользователя {user['nickname']} изменен с '{type_names[old_type]}' на '{type_names[new_type]}'. Пользователь уведомлен."}
+
+@api_router.get("/notifications")
+async def get_notifications(current_user: dict = Depends(get_current_user)):
+    notifications = await db.notifications.find({"user_id": current_user["id"]}).sort("created_at", -1).to_list(50)
+    # Remove MongoDB _id fields
+    for notification in notifications:
+        if "_id" in notification:
+            del notification["_id"]
+    return notifications
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+    await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user["id"]},
+        {"$set": {"read": True}}
+    )
+    return {"message": "Уведомление отмечено как прочитанное"}
 
 # Statistics endpoint
 @api_router.get("/stats")
