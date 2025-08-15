@@ -1299,6 +1299,7 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
+          <Toaster />
         </BrowserRouter>
       </div>
     </AuthProvider>
