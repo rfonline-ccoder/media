@@ -385,7 +385,7 @@ async def get_all_reports(current_user: dict = Depends(get_current_user)):
     return reports
 
 @api_router.post("/admin/reports/{report_id}/approve")
-async def approve_report(report_id: str, comment: str = "", current_user: dict = Depends(get_current_user)):
+async def approve_report(report_id: str, report_data: ApproveReportRequest, current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -394,14 +394,18 @@ async def approve_report(report_id: str, comment: str = "", current_user: dict =
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    # Calculate MC reward based on total views
-    total_views = sum(link.get("views", 0) for link in report.get("links", []))
-    mc_reward = max(10, total_views // 100)  # At least 10 MC, 1 MC per 100 views
+    # Calculate MC reward
+    if report_data.mc_reward is not None:
+        mc_reward = report_data.mc_reward
+    else:
+        # Default calculation based on total views
+        total_views = sum(link.get("views", 0) for link in report.get("links", []))
+        mc_reward = max(10, total_views // 100)  # At least 10 MC, 1 MC per 100 views
     
     # Update report status
     await db.reports.update_one(
         {"id": report_id},
-        {"$set": {"status": "approved", "admin_comment": comment, "reviewed_at": datetime.utcnow()}}
+        {"$set": {"status": "approved", "admin_comment": report_data.comment, "reviewed_at": datetime.utcnow()}}
     )
     
     # Add MC to user balance
@@ -410,7 +414,7 @@ async def approve_report(report_id: str, comment: str = "", current_user: dict =
         {"$inc": {"balance": mc_reward}}
     )
     
-    return {"message": f"Report approved and {mc_reward} MC added to user balance"}
+    return {"message": f"Отчет одобрен и {mc_reward} MC добавлено на баланс пользователя"}
 
 @api_router.get("/admin/users")
 async def get_all_users(current_user: dict = Depends(get_current_user)):
