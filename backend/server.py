@@ -829,6 +829,8 @@ async def get_leaderboard():
                 "channel_link": user["channel_link"]
             })
     
+    return leaderboard
+    
 # Data Export Endpoints
 @api_router.get("/admin/export/{data_type}")
 async def export_data(data_type: str, current_user: dict = Depends(get_current_user)):
