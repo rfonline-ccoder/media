@@ -1576,6 +1576,170 @@ const AdminPage = () => {
     }
   };
 
+  // Filter and Sort Functions
+  const filterApplications = (apps) => {
+    let filtered = [...apps];
+    
+    if (applicationFilter !== 'all') {
+      filtered = filtered.filter(app => app.status === applicationFilter);
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortBy === 'name') {
+        comparison = (a.data?.nickname || '').localeCompare(b.data?.nickname || '');
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    
+    return filtered;
+  };
+
+  const filterPurchases = (purchases) => {
+    let filtered = [...purchases];
+    
+    if (purchaseFilter !== 'all') {
+      filtered = filtered.filter(purchase => purchase.status === purchaseFilter);
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortBy === 'name') {
+        comparison = (a.user_nickname || '').localeCompare(b.user_nickname || '');
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    
+    return filtered;
+  };
+
+  const filterReports = (reports) => {
+    let filtered = [...reports];
+    
+    if (reportFilter !== 'all') {
+      filtered = filtered.filter(report => report.status === reportFilter);
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortBy === 'name') {
+        comparison = (a.user_nickname || '').localeCompare(b.user_nickname || '');
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    
+    return filtered;
+  };
+
+  const filterUsers = (users) => {
+    let filtered = [...users];
+    
+    // Search filter
+    if (userSearch) {
+      filtered = filtered.filter(user => 
+        user.nickname?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        user.login?.toLowerCase().includes(userSearch.toLowerCase())
+      );
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      } else if (sortBy === 'name') {
+        comparison = (a.nickname || '').localeCompare(b.nickname || '');
+      } else if (sortBy === 'balance') {
+        comparison = (a.balance || 0) - (b.balance || 0);
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    
+    return filtered;
+  };
+
+  // Pagination Functions
+  const paginateData = (data, page, perPage = itemsPerPage) => {
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    return {
+      data: data.slice(startIndex, endIndex),
+      totalPages: Math.ceil(data.length / perPage),
+      totalItems: data.length
+    };
+  };
+
+  const changePage = (tab, page) => {
+    setCurrentPage(prev => ({ ...prev, [tab]: page }));
+  };
+
+  // Pagination Component
+  const PaginationControls = ({ currentPageNum, totalPages, onPageChange, totalItems }) => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-between mt-6 px-4">
+        <div className="text-sm text-gray-600">
+          Показано {Math.min(itemsPerPage * (currentPageNum - 1) + 1, totalItems)} - {Math.min(itemsPerPage * currentPageNum, totalItems)} из {totalItems}
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPageNum === 1}
+            onClick={() => onPageChange(currentPageNum - 1)}
+          >
+            Предыдущая
+          </Button>
+          
+          {[...Array(totalPages)].map((_, i) => {
+            const pageNum = i + 1;
+            if (
+              pageNum === 1 ||
+              pageNum === totalPages ||
+              (pageNum >= currentPageNum - 2 && pageNum <= currentPageNum + 2)
+            ) {
+              return (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === currentPageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            } else if (
+              pageNum === currentPageNum - 3 ||
+              pageNum === currentPageNum + 3
+            ) {
+              return <span key={pageNum} className="px-2">...</span>;
+            }
+            return null;
+          })}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPageNum === totalPages}
+            onClick={() => onPageChange(currentPageNum + 1)}
+          >
+            Следующая
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const handleUserAction = async (userId, action, amount = 0) => {
     try {
       const userItem = users.find(u => u.id === userId);
