@@ -847,14 +847,14 @@ async def give_user_warning(user_id: str, warning_data: WarningRequest, admin_us
         if user.registration_ip:
             add_ip_to_blacklist(user.registration_ip, user.vk_link, db, days=30, reason="3 warnings")
     
-    # Создаем уведомление пользователю
+    # Create notification for user
     if auto_blocked:
-        notification_message = f"Вам выдано предупреждение. Причина: {warning_data.reason}. Всего предупреждений: {current_warnings}. ⚠️ ВНИМАНИЕ: Аккаунт автоматически заблокирован на 30 дней за превышение лимита предупреждений (3/3)."
-        notification_title = "🚨 БЛОКИРОВКА ЗА ПРЕДУПРЕЖДЕНИЯ"
+        notification_message = f"Warning issued. Reason: {warning_data.reason}. Total warnings: {current_warnings}. ATTENTION: Account automatically blocked for 30 days due to exceeding warning limit (3/3)."
+        notification_title = "BLOCKED FOR WARNINGS"
         notification_type = "error"
     else:
-        notification_message = f"Вам выдано предупреждение. Причина: {warning_data.reason}. Всего предупреждений: {current_warnings}/3. При получении 3-го предупреждения аккаунт будет заблокирован автоматически."
-        notification_title = "⚠️ Предупреждение"
+        notification_message = f"Warning issued. Reason: {warning_data.reason}. Total warnings: {current_warnings}/3. Account will be automatically blocked upon receiving 3rd warning."
+        notification_title = "Warning"
         notification_type = "warning"
     
     notification = Notification(
