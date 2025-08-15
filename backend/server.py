@@ -774,47 +774,69 @@ class WarningRequest(BaseModel):
     reason: str
 
 @api_router.post("/admin/users/{user_id}/warning")
-async def add_user_warning(user_id: str, warning_data: WarningRequest, current_user: dict = Depends(get_current_user)):
-    if current_user["admin_level"] < 1:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
+async def give_user_warning(user_id: str, warning_data: WarningRequest, current_user: dict = Depends(get_current_user)):
+    """Выдать предупреждение пользователю"""
     user = await db.users.find_one({"id": user_id})
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    new_warnings = user.get("warnings", 0) + 1
+    # Проверяем валидность причины
+    if not warning_data.reason or not warning_data.reason.strip():
+        raise HTTPException(status_code=400, detail="Причина предупреждения обязательна")
     
-    # Create notification for the user
+    # Увеличиваем счетчик предупреждений
+    user["warnings"] = user.get("warnings", 0) + 1
+    current_warnings = user["warnings"]
+    
+    # Проверяем, нужно ли автоматически заблокировать при 3-х предупреждениях
+    auto_blocked = False
+    if current_warnings >= 3:
+        # Автоматическая блокировка на 30 дней при 3-х предупреждениях
+        blacklist_until = datetime.utcnow() + timedelta(days=30)
+        user["blacklist_until"] = blacklist_until
+        user["is_approved"] = False
+        auto_blocked = True
+        
+        # Добавляем IP в черный список, если есть
+        if user.get("registration_ip"):
+            await add_ip_to_blacklist(user["registration_ip"], user["vk_link"], days=30)
+    
+    # Создаем уведомление пользователю
+    if auto_blocked:
+        notification_message = f"Вам выдано предупреждение. Причина: {warning_data.reason}. Всего предупреждений: {current_warnings}. ⚠️ ВНИМАНИЕ: Аккаунт автоматически заблокирован на 30 дней за превышение лимита предупреждений (3/3)."
+        notification_title = "🚨 БЛОКИРОВКА ЗА ПРЕДУПРЕЖДЕНИЯ"
+        notification_type = "error"
+    else:
+        notification_message = f"Вам выдано предупреждение. Причина: {warning_data.reason}. Всего предупреждений: {current_warnings}/3. При получении 3-го предупреждения аккаунт будет заблокирован автоматически."
+        notification_title = "⚠️ Предупреждение"
+        notification_type = "warning"
+    
     notification = Notification(
         user_id=user_id,
-        title="⚠️ Предупреждение от администрации",
-        message=f"Вам выдано предупреждение ({new_warnings}/3). Причина: {warning_data.reason}",
-        type="warning"
+        title=notification_title,
+        message=notification_message,
+        type=notification_type
     )
     await db.notifications.insert_one(notification.dict())
     
-    if new_warnings >= 3:
-        # Block user and create blocking notification
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings, "is_approved": False}}
-        )
-        
-        block_notification = Notification(
-            user_id=user_id,
-            title="🚨 Аккаунт заблокирован",
-            message="Ваш аккаунт был заблокирован за получение 3 предупреждений. Обратитесь к администрации для разблокировки.",
-            type="error"
-        )
-        await db.notifications.insert_one(block_notification.dict())
-        
-        return {"message": "User blocked (3 warnings reached)", "warnings": new_warnings}
-    else:
-        await db.users.update_one(
-            {"id": user_id},
-            {"$set": {"warnings": new_warnings}}
-        )
-        return {"message": f"Warning added. Total warnings: {new_warnings}", "warnings": new_warnings}
+    # Обновляем пользователя в базе данных
+    update_data = {"warnings": current_warnings}
+    if auto_blocked:
+        update_data["blacklist_until"] = user["blacklist_until"]
+        update_data["is_approved"] = False
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "message": f"Предупреждение выдано пользователю {user.get('nickname', 'Unknown')}", 
+        "warnings_count": current_warnings,
+        "reason": warning_data.reason,
+        "auto_blocked": auto_blocked,
+        "blocked_until": user["blacklist_until"].isoformat() if auto_blocked else None
+    }
 
 @api_router.get("/admin/blacklist")
 async def get_blacklist(current_user: dict = Depends(get_current_user)):
