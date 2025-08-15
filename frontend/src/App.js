@@ -1418,8 +1418,18 @@ const AdminPage = () => {
   const [userSearch, setUserSearch] = useState('');
   const [reportFilter, setReportFilter] = useState('all'); // all, pending, approved, rejected
   const [applicationFilter, setApplicationFilter] = useState('all'); // all, pending, approved, rejected
+  const [purchaseFilter, setPurchaseFilter] = useState('all'); // all, pending, approved, rejected
   const [sortBy, setSortBy] = useState('date'); // date, name, balance
   const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
+  
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState({
+    applications: 1,
+    purchases: 1,
+    reports: 1,
+    users: 1
+  });
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && user?.admin_level >= 1) {
