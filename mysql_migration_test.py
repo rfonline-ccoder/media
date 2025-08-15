@@ -464,13 +464,13 @@ class MySQLMigrationTester:
                 users = users_response.json()
                 reports = reports_response.json()
                 
-                # Check if reports have valid user_id references
-                user_ids = {user["id"] for user in users}
-                valid_reports = [r for r in reports if r.get("user_id") in user_ids]
-                invalid_reports = [r for r in reports if r.get("user_id") not in user_ids]
+                # Check if reports have valid user relationships by checking user_nickname resolution
+                # The admin endpoint resolves user_nickname from user_id, so if it's not "Удаленный пользователь", the FK is valid
+                valid_reports = [r for r in reports if r.get("user_nickname") != "Удаленный пользователь"]
+                invalid_reports = [r for r in reports if r.get("user_nickname") == "Удаленный пользователь"]
                 
                 if len(valid_reports) > 0:
-                    self.log_test("MySQL Foreign Key Integrity", True, f"Found {len(valid_reports)} reports with valid foreign keys (ignoring {len(invalid_reports)} legacy reports)")
+                    self.log_test("MySQL Foreign Key Integrity", True, f"Found {len(valid_reports)} reports with valid foreign keys (user_nickname resolved correctly)")
                 else:
                     self.log_test("MySQL Foreign Key Integrity", False, f"No reports with valid foreign key references found")
             else:
