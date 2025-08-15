@@ -68,6 +68,10 @@ class User(BaseModel):
     is_approved: bool = Field(default=False)
     media_type: int = Field(default=0)  # 0 = free, 1 = paid
     warnings: int = Field(default=0)
+    previews_used: int = Field(default=0)  # Number of previews used
+    previews_limit: int = Field(default=3)  # Maximum previews allowed
+    blacklist_until: Optional[datetime] = None  # Blacklist expiration date
+    registration_ip: Optional[str] = None  # IP address used for registration
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class RegistrationRequest(BaseModel):
