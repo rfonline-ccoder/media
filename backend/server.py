@@ -289,11 +289,27 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# Authentication endpoints
 # Rate limiting decorators for critical endpoints
 @api_router.post("/register")
 @limiter.limit("10/hour")
 async def register_user(request: Request, registration: RegistrationRequest):
+    # Get client IP address
+    client_ip = get_remote_address(request)
+    
+    # Check if IP is blacklisted
+    if await check_ip_blacklist(client_ip):
+        raise HTTPException(
+            status_code=403, 
+            detail="Регистрация временно недоступна с вашего IP адреса"
+        )
+    
+    # Check if VK link is associated with blacklisted account
+    if await check_vk_blacklist(registration.vk_link):
+        raise HTTPException(
+            status_code=403, 
+            detail="Регистрация с данными VK временно недоступна"
+        )
+    
     # Check if login already exists
     existing_login = await db.users.find_one({"login": registration.login})
     if existing_login:
@@ -304,11 +320,11 @@ async def register_user(request: Request, registration: RegistrationRequest):
     if existing_nickname:
         raise HTTPException(status_code=400, detail="Никнейм уже занят")
     
-    # Create registration application
+    # Create registration application with IP tracking
     application = {
         "id": str(uuid.uuid4()),
         "type": "registration",
-        "data": registration.dict(),
+        "data": {**registration.dict(), "registration_ip": client_ip},
         "status": "pending",
         "created_at": datetime.utcnow()
     }
