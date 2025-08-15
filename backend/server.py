@@ -25,7 +25,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # Database setup
-DATABASE_URL = f"mysql+pymysql://hesus:ba7a7m1ZX3.,@89.169.1.168:3306/swagmedia1"
+DATABASE_URL = f"mysql+pymysql://hesus:ba7a7m1ZX3.,@89.169.1.168:3306/swagmedia1?charset=utf8mb4"
 
 # SQLAlchemy setup
 Base = declarative_base()
