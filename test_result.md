@@ -166,41 +166,65 @@ backend:
         comment: "Добавлены endpoints для системы уведомлений: GET /api/notifications и POST /api/notifications/{id}/read"
 
 frontend:
-  - task: "Authentication Context Fix"
+  - task: "Form Validation Frontend"
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: false
         agent: "main"
-        comment: "Fixed race condition in auth state by adding isLoading state to prevent premature redirects."
+        comment: "Добавлена валидация форм в регистрации: пароль мин 8 символов, проверка VK ссылок, валидация ссылок каналов с визуальной индикацией ошибок"
         
-  - task: "Shop Items Display"
+  - task: "Shop Items Images Display"
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: false
         agent: "main"
-        comment: "Shop component exists but may have display issues. Backend returns 9 items correctly."
+        comment: "Добавлено отображение изображений товаров с fallback на placeholder и категориальные эмодзи. Обработка ошибок загрузки изображений"
         
-  - task: "Admin Panel Tabs"
+  - task: "Admin Media Type Toggle"
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлена кнопка переключения типа медиа в админ панели с визуальными индикаторами ToggleLeft/ToggleRight и промптом для комментариев"
+        
+  - task: "Custom MC for Reports Approval"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлено поле для кастомной суммы MC при одобрении отчетов с автоматическим расчетом как fallback и подсказкой"
+        
+  - task: "Shop Management Admin Tab"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
     priority: "medium"
     needs_retesting: true
     status_history:
       - working: false
         agent: "main"
-        comment: "Admin panel tabs implemented. Need to verify 4 tabs display correctly."
+        comment: "Добавлен новый таб 'Магазин' в админ панели с полным функционалом управления изображениями товаров - ShopManagementTab компонент"
 
 metadata:
   created_by: "main_agent"
