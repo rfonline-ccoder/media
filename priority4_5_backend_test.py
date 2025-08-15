@@ -252,6 +252,7 @@ class Priority45Tester:
             
             # Test 4: Rating Validation (invalid rating value)
             invalid_rating_data = {
+                "user_id": "dummy",  # This will be overridden by backend
                 "rated_user_id": self.test_user_id,
                 "rating": 10,  # Should be 1-5
                 "comment": "Invalid rating test"
