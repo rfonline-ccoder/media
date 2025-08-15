@@ -321,9 +321,42 @@ const RegisterPage = () => {
     channel_link: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Password validation
+    if (formData.password.length < 8) {
+      newErrors.password = 'Пароль должен содержать минимум 8 символов';
+    }
+    
+    // VK link validation
+    if (formData.vk_link && !formData.vk_link.includes('vk.com')) {
+      newErrors.vk_link = 'Это должна быть ссылка на VK';
+    }
+    
+    // Channel link validation  
+    if (formData.channel_link && !['t.me', 'youtube.com', 'youtu.be', 'instagram.com'].some(domain => formData.channel_link.includes(domain))) {
+      newErrors.channel_link = 'Ссылка должна вести на Telegram, YouTube или Instagram';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: "❌ Ошибки в форме",
+        description: "Пожалуйста, исправьте ошибки в форме",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
       await axios.post(`${API}/register`, formData);
@@ -332,6 +365,7 @@ const RegisterPage = () => {
         description: "Заявка на регистрацию отправлена! Ожидайте одобрения администратора.",
       });
       setFormData({ nickname: '', login: '', password: '', vk_link: '', channel_link: '' });
+      setErrors({});
     } catch (error) {
       toast({
         title: "❌ Ошибка регистрации",
@@ -372,14 +406,16 @@ const RegisterPage = () => {
             </div>
             
             <div>
-              <Label htmlFor="password">Пароль</Label>
+              <Label htmlFor="password">Пароль (минимум 8 символов)</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
+                className={errors.password ? 'border-red-500' : ''}
               />
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
             </div>
             
             <div>
@@ -390,7 +426,9 @@ const RegisterPage = () => {
                 onChange={(e) => setFormData({...formData, vk_link: e.target.value})}
                 placeholder="https://vk.com/username"
                 required
+                className={errors.vk_link ? 'border-red-500' : ''}
               />
+              {errors.vk_link && <p className="text-red-500 text-sm mt-1">{errors.vk_link}</p>}
             </div>
             
             <div>
@@ -401,7 +439,9 @@ const RegisterPage = () => {
                 onChange={(e) => setFormData({...formData, channel_link: e.target.value})}
                 placeholder="https://t.me/channel или https://youtube.com/channel"
                 required
+                className={errors.channel_link ? 'border-red-500' : ''}
               />
+              {errors.channel_link && <p className="text-red-500 text-sm mt-1">{errors.channel_link}</p>}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
