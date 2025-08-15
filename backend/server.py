@@ -117,6 +117,17 @@ class Report(BaseModel):
 
 class ReportCreate(BaseModel):
     links: List[dict]
+    
+    @validator('links')
+    def validate_links(cls, v):
+        for link in v:
+            url = link.get('url', '')
+            if not url.startswith(('http://', 'https://')):
+                raise ValueError('Все ссылки должны начинаться с http:// или https://')
+            # Проверяем что это валидный URL
+            if not re.match(r'https?://.+\..+', url):
+                raise ValueError('Введите корректный URL')
+        return v
 
 class ApplicationResponse(BaseModel):
     id: str
