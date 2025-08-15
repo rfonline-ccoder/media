@@ -208,7 +208,8 @@ async def register(request: Request, registration: RegistrationRequest):
     return {"message": "Заявка на регистрацию отправлена! Ожидайте одобрения администратора."}
 
 @api_router.post("/login")
-async def login(login_data: LoginRequest):
+@limiter.limit("10/minute")  # 10 login attempts per minute
+async def login(request: Request, login_data: LoginRequest):
     user = await db.users.find_one({"login": login_data.login})
     if not user or user["password"] != login_data.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
