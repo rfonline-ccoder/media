@@ -1282,13 +1282,44 @@ const AdminPage = () => {
     }
   };
 
-  const handleReportApprove = async (reportId, comment = '') => {
+  const handleReportApprove = async (reportId, customMc = null, comment = '') => {
     try {
       const report = reports.find(r => r.id === reportId);
-      await axios.post(`${API}/admin/reports/${reportId}/approve?comment=${comment}`);
+      const requestData = {
+        comment: comment,
+        mc_reward: customMc
+      };
+      
+      await axios.post(`${API}/admin/reports/${reportId}/approve`, requestData);
       toast({
         title: "✅ Отчет одобрен!",
-        description: `Отчет от ${report?.user_nickname} одобрен. MC начислены на баланс.`,
+        description: `Отчет от ${report?.user_nickname} одобрен. ${customMc || 'Автоматически рассчитанные'} MC начислены на баланс.`,
+      });
+      fetchAdminData();
+    } catch (error) {
+      console.error('Action failed:', error);
+      toast({
+        title: "❌ Ошибка операции",
+        description: "Не удалось выполнить действие",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMediaTypeChange = async (userId, newMediaType, comment = '') => {
+    try {
+      const userItem = users.find(u => u.id === userId);
+      const requestData = {
+        user_id: userId,
+        new_media_type: newMediaType,
+        admin_comment: comment
+      };
+      
+      await axios.post(`${API}/admin/users/${userId}/change-media-type`, requestData);
+      const typeNames = {0: "Бесплатное", 1: "Платное"};
+      toast({
+        title: "🔄 Тип медиа изменен",
+        description: `${userItem?.nickname} теперь ${typeNames[newMediaType]} медиа. Пользователь уведомлен.`,
       });
       fetchAdminData();
     } catch (error) {
