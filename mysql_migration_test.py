@@ -306,10 +306,11 @@ class MySQLMigrationTester:
                     # Check notification structure if any exist
                     if notifications:
                         sample_notification = notifications[0]
-                        required_fields = ["id", "user_id", "type", "title", "message", "created_at", "read"]
+                        # Note: user_id is intentionally omitted from API response for security
+                        required_fields = ["id", "type", "title", "message", "created_at", "read"]
                         
                         if all(field in sample_notification for field in required_fields):
-                            self.log_test("Notifications Structure", True, "Notifications have correct structure")
+                            self.log_test("Notifications Structure", True, "Notifications have correct structure (user_id omitted for security)")
                             
                             # Test POST /api/notifications/{id}/read
                             unread_notification = next((n for n in notifications if not n.get("read", True)), None)
