@@ -2074,49 +2074,146 @@ const AdminPage = () => {
           <TabsContent value="reports" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Отчеты на рассмотрении</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <CardTitle>Отчеты</CardTitle>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    {/* Filter by Status */}
+                    <Select value={reportFilter} onValueChange={setReportFilter}>
+                      <SelectTrigger className="w-full sm:w-40">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все статусы</SelectItem>
+                        <SelectItem value="pending">Ожидание</SelectItem>
+                        <SelectItem value="approved">Одобрено</SelectItem>
+                        <SelectItem value="rejected">Отклонено</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Sort */}
+                    <div className="flex space-x-1">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Дата</SelectItem>
+                          <SelectItem value="name">Пользователь</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      >
+                        {sortOrder === 'desc' ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {reports.filter(report => report.status === 'pending').length === 0 ? (
-                  <div className="text-center text-gray-500">Нет новых отчетов</div>
-                ) : (
-                  reports.filter(report => report.status === 'pending').map((report) => (
-                    <div key={report.id} className="border rounded-lg p-4 mb-4">
-                      <div className="mb-4">
-                        <h3 className="font-semibold">{report.user_nickname}</h3>
-                        <div className="space-y-1 mt-2">
-                          {report.links.map((link, index) => (
-                            <div key={index} className="flex justify-between">
-                              <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                {link.url}
-                              </a>
-                              <span>{link.views} просмотров</span>
+                {(() => {
+                  const filteredReports = filterReports(reports);
+                  const paginatedReports = paginateData(filteredReports, currentPage.reports);
+                  
+                  if (paginatedReports.totalItems === 0) {
+                    return <div className="text-center text-gray-500 py-8">Нет отчетов для отображения</div>;
+                  }
+                  
+                  return (
+                    <>
+                      <div className="space-y-4">
+                        {paginatedReports.data.map((report) => (
+                          <div key={report.id} className="border rounded-lg p-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                              <div className="lg:col-span-2">
+                                <div className="flex items-center space-x-2 mb-3">
+                                  <h3 className="font-semibold">{report.user_nickname}</h3>
+                                  <Badge variant={
+                                    report.status === 'pending' ? 'secondary' :
+                                    report.status === 'approved' ? 'default' : 'destructive'
+                                  }>
+                                    {report.status === 'pending' ? 'Ожидание' :
+                                     report.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="space-y-2 mb-4">
+                                  <h4 className="font-medium text-sm">Ссылки и просмотры:</h4>
+                                  {report.links?.map((link, index) => (
+                                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate mr-4">
+                                        {link.url}
+                                      </a>
+                                      <Badge variant="outline">{link.views?.toLocaleString()} просмотров</Badge>
+                                    </div>
+                                  )) || []}
+                                  <div className="text-xs text-gray-500">
+                                    Общие просмотры: {(report.links || []).reduce((sum, link) => sum + (link.views || 0), 0).toLocaleString()}
+                                  </div>
+                                </div>
+                                
+                                <div className="text-xs text-gray-500">
+                                  Дата подачи: {new Date(report.created_at).toLocaleString('ru-RU')}
+                                </div>
+                                
+                                {report.admin_comment && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                                    <strong>Комментарий админа:</strong> {report.admin_comment}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex flex-col justify-center space-y-2">
+                                {report.status === 'pending' && (
+                                  <>
+                                    <Input placeholder="Комментарий..." id={`comment-${report.id}`} className="text-sm" />
+                                    <div className="flex space-x-2">
+                                      <Input 
+                                        placeholder="MC (авто)" 
+                                        id={`mc-${report.id}`} 
+                                        type="number" 
+                                        className="flex-1 text-sm"
+                                      />
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => {
+                                          const comment = document.getElementById(`comment-${report.id}`)?.value || '';
+                                          const customMc = document.getElementById(`mc-${report.id}`)?.value;
+                                          handleReportApprove(report.id, customMc ? parseInt(customMc) : null, comment);
+                                        }}
+                                        className="flex-1"
+                                      >
+                                        Одобрить
+                                      </Button>
+                                    </div>
+                                    <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+                                      💡 Авто расчет: {Math.max(10, (report.links || []).reduce((sum, link) => sum + (link.views || 0), 0) / 100)} MC
+                                    </div>
+                                  </>
+                                )}
+                                {report.status !== 'pending' && (
+                                  <div className="text-sm text-gray-500">
+                                    Обработано: {new Date(report.reviewed_at || report.created_at).toLocaleString('ru-RU')}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex space-x-2 mb-2">
-                        <Input placeholder="Комментарий..." id={`comment-${report.id}`} className="flex-1" />
-                        <Input 
-                          placeholder="MC (авто)" 
-                          id={`mc-${report.id}`} 
-                          type="number" 
-                          className="w-24"
-                        />
-                        <Button onClick={() => {
-                          const comment = document.getElementById(`comment-${report.id}`).value;
-                          const customMc = document.getElementById(`mc-${report.id}`).value;
-                          handleReportApprove(report.id, customMc ? parseInt(customMc) : null, comment);
-                        }}>
-                          Одобрить
-                        </Button>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        💡 Оставьте поле MC пустым для автоматического расчета ({Math.max(10, report.links.reduce((sum, link) => sum + (link.views || 0), 0) / 100)} MC)
-                      </div>
-                    </div>
-                  ))
-                )}
+                      
+                      <PaginationControls
+                        currentPageNum={currentPage.reports}
+                        totalPages={paginatedReports.totalPages}
+                        totalItems={paginatedReports.totalItems}
+                        onPageChange={(page) => changePage('reports', page)}
+                      />
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
