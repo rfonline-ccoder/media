@@ -484,13 +484,63 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
             del notification["_id"]
     return notifications
 
-@api_router.post("/notifications/{notification_id}/read")
-async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
-    await db.notifications.update_one(
-        {"id": notification_id, "user_id": current_user["id"]},
-        {"$set": {"read": True}}
+@api_router.post("/admin/users/{user_id}/warning")
+async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_warnings = user.get("warnings", 0) + 1
+    if new_warnings >= 3:
+        # Block user
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"warnings": new_warnings, "is_approved": False}}
+        )
+        return {"message": "User blocked (3 warnings reached)"}
+    else:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"warnings": new_warnings}}
+        )
+        return {"message": f"Warning added. Total warnings: {new_warnings}"}
+
+@api_router.post("/admin/shop/item/{item_id}/image")
+async def update_shop_item_image(item_id: str, image_data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    image_url = image_data.get("image_url", "")
+    
+    # Validate URL if provided
+    if image_url and not image_url.startswith(('http://', 'https://')):
+        raise HTTPException(status_code=400, detail="Изображение должно быть валидной HTTP/HTTPS ссылкой")
+    
+    # Update shop item
+    result = await db.shop_items.update_one(
+        {"id": item_id},
+        {"$set": {"image_url": image_url}}
     )
-    return {"message": "Уведомление отмечено как прочитанное"}
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    return {"message": "Изображение товара обновлено"}
+
+@api_router.get("/admin/shop/items")
+async def get_admin_shop_items(current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    items = await db.shop_items.find().to_list(1000)
+    # Remove MongoDB _id fields
+    for item in items:
+        if "_id" in item:
+            del item["_id"]
+    return items
 
 # Statistics endpoint
 @api_router.get("/stats")
