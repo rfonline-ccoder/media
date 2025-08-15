@@ -198,6 +198,15 @@ class MediaAccess(BaseModel):
     access_type: str  # "preview" or "full"
     accessed_at: datetime = Field(default_factory=datetime.utcnow)
 
+class Notification(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    message: str
+    type: str = Field(default="info")  # info, warning, error, success
+    read: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Helper functions
 def get_cache(key):
     """Get cached value if not expired"""
