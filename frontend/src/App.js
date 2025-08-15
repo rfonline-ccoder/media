@@ -1269,22 +1269,42 @@ const AdminPage = () => {
               </CardHeader>
               <CardContent>
                 {users.map((userItem) => (
-                  <div key={userItem.id} className="border rounded-lg p-4 mb-4">
+                  <div key={userItem.id} className={`border rounded-lg p-4 mb-4 ${!userItem.is_approved ? 'bg-red-50 border-red-200' : userItem.warnings >= 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <h3 className="font-semibold">{userItem.nickname}</h3>
+                        <h3 className="font-semibold flex items-center space-x-2">
+                          <span>{userItem.nickname}</span>
+                          {!userItem.is_approved && <Badge variant="destructive">Заблокирован</Badge>}
+                          {userItem.warnings >= 2 && userItem.is_approved && <Badge variant="secondary">⚠️ Опасная зона</Badge>}
+                        </h3>
                         <p><strong>Логин:</strong> {userItem.login}</p>
-                        <p><strong>Баланс:</strong> {userItem.balance} MC</p>
-                        <p><strong>Предупреждения:</strong> {userItem.warnings || 0}/3</p>
+                        <div className="flex items-center space-x-2">
+                          <Coins className="h-4 w-4 text-yellow-600" />
+                          <span><strong>Баланс:</strong> {userItem.balance?.toLocaleString() || 0} MC</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <AlertTriangle className={`h-4 w-4 ${userItem.warnings >= 2 ? 'text-red-600' : 'text-gray-400'}`} />
+                          <span className={userItem.warnings >= 2 ? 'text-red-600 font-semibold' : ''}>
+                            <strong>Предупреждения:</strong> {userItem.warnings || 0}/3
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <p><strong>Статус:</strong> {userItem.is_approved ? 'Одобрен' : 'Не одобрен'}</p>
-                        <p><strong>Тип:</strong> {userItem.media_type === 1 ? 'Платное' : 'Бесплатное'}</p>
-                        <p><strong>Админ:</strong> {userItem.admin_level > 0 ? 'Да' : 'Нет'}</p>
+                        <p><strong>Статус:</strong> 
+                          <Badge variant={userItem.is_approved ? 'default' : 'destructive'} className="ml-2">
+                            {userItem.is_approved ? 'Одобрен' : 'Заблокирован'}
+                          </Badge>
+                        </p>
+                        <p><strong>Тип:</strong> 
+                          <Badge variant={userItem.media_type === 1 ? 'default' : 'secondary'} className="ml-2">
+                            {userItem.media_type === 1 ? 'Платное' : 'Бесплатное'}
+                          </Badge>
+                        </p>
+                        <p><strong>Админ:</strong> {userItem.admin_level > 0 ? '✅ Да' : '❌ Нет'}</p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex space-x-2">
-                          <Input placeholder="Сумма" id={`balance-${userItem.id}`} type="number" className="w-20" />
+                          <Input placeholder="±100" id={`balance-${userItem.id}`} type="number" className="w-20" />
                           <Button size="sm" onClick={() => {
                             const amount = document.getElementById(`balance-${userItem.id}`).value;
                             if (amount) handleUserAction(userItem.id, 'balance', parseInt(amount));
@@ -1292,15 +1312,21 @@ const AdminPage = () => {
                             +/- MC
                           </Button>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleUserAction(userItem.id, 'warning')}
-                          className="w-full"
-                          disabled={userItem.warnings >= 3}
-                        >
-                          Выдать предупреждение
-                        </Button>
+                        {userItem.is_approved && (
+                          <Button 
+                            variant={userItem.warnings >= 2 ? "destructive" : "outline"}
+                            size="sm"
+                            onClick={() => handleUserAction(userItem.id, 'warning')}
+                            className="w-full"
+                          >
+                            {userItem.warnings >= 2 ? '🚨 Последнее предупреждение!' : 'Выдать предупреждение'}
+                          </Button>
+                        )}
+                        {!userItem.is_approved && (
+                          <div className="text-sm text-red-600 p-2 bg-red-50 rounded">
+                            Пользователь заблокирован за превышение лимита предупреждений
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
