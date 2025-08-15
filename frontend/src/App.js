@@ -1952,33 +1952,121 @@ const AdminPage = () => {
           <TabsContent value="purchases" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Заявки на покупки</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <CardTitle>Заявки на покупки</CardTitle>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    {/* Filter by Status */}
+                    <Select value={purchaseFilter} onValueChange={setPurchaseFilter}>
+                      <SelectTrigger className="w-full sm:w-40">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все статусы</SelectItem>
+                        <SelectItem value="pending">Ожидание</SelectItem>
+                        <SelectItem value="approved">Одобрено</SelectItem>
+                        <SelectItem value="rejected">Отклонено</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Sort */}
+                    <div className="flex space-x-1">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Дата</SelectItem>
+                          <SelectItem value="name">Пользователь</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      >
+                        {sortOrder === 'desc' ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {purchases.filter(purchase => purchase.status === 'pending').length === 0 ? (
-                  <div className="text-center text-gray-500">Нет новых заявок на покупки</div>
-                ) : (
-                  purchases.filter(purchase => purchase.status === 'pending').map((purchase) => (
-                    <div key={purchase.id} className="border rounded-lg p-4 mb-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-semibold">{purchase.user_nickname}</h3>
-                          <p><strong>Товар:</strong> {purchase.item_name}</p>
-                          <p><strong>Количество:</strong> {purchase.quantity}</p>
-                          <p><strong>Цена:</strong> {purchase.total_price} MC</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button onClick={() => handlePurchaseAction(purchase.id, 'approve')}>
-                            Одобрить
-                          </Button>
-                          <Button variant="destructive" onClick={() => handlePurchaseAction(purchase.id, 'reject')}>
-                            Отклонить
-                          </Button>
-                        </div>
+                {(() => {
+                  const filteredPurchases = filterPurchases(purchases);
+                  const paginatedPurchases = paginateData(filteredPurchases, currentPage.purchases);
+                  
+                  if (paginatedPurchases.totalItems === 0) {
+                    return <div className="text-center text-gray-500 py-8">Нет покупок для отображения</div>;
+                  }
+                  
+                  return (
+                    <>
+                      <div className="space-y-4">
+                        {paginatedPurchases.data.map((purchase) => (
+                          <div key={purchase.id} className="border rounded-lg p-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <h3 className="font-semibold">{purchase.user_nickname}</h3>
+                                  <Badge variant={
+                                    purchase.status === 'pending' ? 'secondary' :
+                                    purchase.status === 'approved' ? 'default' : 'destructive'
+                                  }>
+                                    {purchase.status === 'pending' ? 'Ожидание' :
+                                     purchase.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <p><strong>Товар:</strong> {purchase.item_name}</p>
+                                  <p><strong>Количество:</strong> {purchase.quantity}</p>
+                                  <p><strong>Цена:</strong> {purchase.total_price?.toLocaleString()} MC</p>
+                                  <p><strong>Дата заказа:</strong> {new Date(purchase.created_at).toLocaleString('ru-RU')}</p>
+                                  {purchase.admin_comment && (
+                                    <p><strong>Комментарий:</strong> {purchase.admin_comment}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex flex-col justify-center space-y-2">
+                                {purchase.status === 'pending' && (
+                                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handlePurchaseAction(purchase.id, 'approve')}
+                                      className="flex-1"
+                                    >
+                                      Одобрить
+                                    </Button>
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm" 
+                                      onClick={() => handlePurchaseAction(purchase.id, 'reject')}
+                                      className="flex-1"
+                                    >
+                                      Отклонить
+                                    </Button>
+                                  </div>
+                                )}
+                                {purchase.status !== 'pending' && (
+                                  <div className="text-sm text-gray-500">
+                                    Обработано: {new Date(purchase.reviewed_at || purchase.created_at).toLocaleString('ru-RU')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))
-                )}
+                      
+                      <PaginationControls
+                        currentPageNum={currentPage.purchases}
+                        totalPages={paginatedPurchases.totalPages}
+                        totalItems={paginatedPurchases.totalItems}
+                        onPageChange={(page) => changePage('purchases', page)}
+                      />
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
