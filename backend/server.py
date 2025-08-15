@@ -202,9 +202,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # Authentication endpoints
+# Rate limiting decorators for critical endpoints
 @api_router.post("/register")
-@limiter.limit("5/minute")  # 5 registrations per minute
-async def register(request: Request, registration: RegistrationRequest):
+@limiter.limit("10/hour")
+async def register_user(request: Request, registration: RegistrationRequest):
     # Check if login already exists
     existing_login = await db.users.find_one({"login": registration.login})
     if existing_login:
