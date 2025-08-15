@@ -2873,6 +2873,11 @@ const AdminPage = () => {
           <TabsContent value="shop" className="mt-6">
             <ShopManagementTab />
           </TabsContent>
+
+          {/* Blacklist Management Tab */}
+          <TabsContent value="blacklist" className="mt-6">
+            <BlacklistManagementTab />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
