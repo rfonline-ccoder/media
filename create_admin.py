@@ -25,35 +25,34 @@ async def create_admin_user():
     existing_admin = await db.users.find_one({"login": "admin"})
     if existing_admin:
         print("Admin user already exists!")
-        return
-    
-    # Create admin user
-    admin_user = {
-        "id": str(uuid.uuid4()),
-        "login": "admin",
-        "password": "admin123",  # Plain text as per requirement
-        "nickname": "Administrator",
-        "vk_link": "https://vk.com/admin",
-        "channel_link": "https://t.me/admin",
-        "balance": 10000,
-        "admin_level": 1,
-        "is_approved": True,
-        "media_type": 1,  # Paid media
-        "warnings": 0,
-        "previews_used": 0,
-        "previews_limit": 3,
-        "blacklist_until": None,
-        "registration_ip": "127.0.0.1",
-        "created_at": datetime.utcnow()
-    }
-    
-    # Insert admin user
-    result = await db.users.insert_one(admin_user)
-    print(f"Admin user created with ID: {admin_user['id']}")
+    else:
+        # Create admin user
+        admin_user = {
+            "id": str(uuid.uuid4()),
+            "login": "admin",
+            "password": "admin123",  # Plain text as per requirement
+            "nickname": "Administrator",
+            "vk_link": "https://vk.com/admin",
+            "channel_link": "https://t.me/admin",
+            "balance": 10000,
+            "admin_level": 1,
+            "is_approved": True,
+            "media_type": 1,  # Paid media
+            "warnings": 0,
+            "previews_used": 0,
+            "previews_limit": 3,
+            "blacklist_until": None,
+            "registration_ip": "127.0.0.1",
+            "created_at": datetime.utcnow()
+        }
+        
+        # Insert admin user
+        result = await db.users.insert_one(admin_user)
+        print(f"Admin user created with ID: {admin_user['id']}")
     
     # Create a few test users for testing admin functions
     test_users = []
-    for i in range(3):
+    for i in range(5):  # Create 5 test users
         test_user = {
             "id": str(uuid.uuid4()),
             "login": f"testuser{i+1}",
