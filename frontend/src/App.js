@@ -3316,10 +3316,10 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/media-list" element={<MediaListPage />} />
+            <Route path="/ratings" element={<RatingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/ratings" element={<RatingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
           <Toaster />
