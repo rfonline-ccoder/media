@@ -723,18 +723,29 @@ const ShopPage = () => {
         )}
 
         {categories.length > 0 && (
-          <div className="mb-6">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Выберите категорию" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все категории</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mb-8">
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              <Button
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory('all')}
+                className="transition-all duration-200"
+              >
+                Все категории ({items.length})
+              </Button>
+              {categories.map(category => {
+                const categoryCount = items.filter(item => item.category === category).length;
+                return (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    onClick={() => setSelectedCategory(category)}
+                    className="transition-all duration-200"
+                  >
+                    {category} ({categoryCount})
+                  </Button>
+                );
+              })}
+            </div>
           </div>
         )}
 
