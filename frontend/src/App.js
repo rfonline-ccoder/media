@@ -46,11 +46,14 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchProfile();
+    } else {
+      setIsLoading(false);
     }
   }, [token]);
 
@@ -61,6 +64,8 @@ const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to fetch profile:', error);
       logout();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,6 +73,7 @@ const AuthProvider = ({ children }) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(userData);
+    setIsLoading(false);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
   };
 
@@ -75,11 +81,12 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setIsLoading(false);
     delete axios.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user && !!token, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
