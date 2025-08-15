@@ -145,6 +145,14 @@ class ApproveReportRequest(BaseModel):
     comment: str = ""
     mc_reward: Optional[int] = None
 
+class UserRating(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    rated_user_id: str
+    rating: int = Field(ge=1, le=5)  # 1-5 stars
+    comment: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Helper functions
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
