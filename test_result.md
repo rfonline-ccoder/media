@@ -171,15 +171,18 @@ backend:
         
   - task: "Система предварительных просмотров"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Реализована полная система предварительных просмотров с лимитами, IP трекингом, автоматической блокировкой на 15 дней при превышении лимита 3/3 предов. Добавлены новые поля в User модель: previews_used, previews_limit, blacklist_until, registration_ip. Созданы новые модели IPBlacklist и MediaAccess."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Система предварительных просмотров работает идеально! Endpoint POST /api/media/{media_user_id}/access корректно обрабатывает предпросмотры для бесплатных пользователей. Лимит 3/3 работает, счетчик предпросмотров увеличивается, при превышении лимита пользователь автоматически блокируется на 15 дней. Предпросмотры показывают ограниченные данные с уведомлением. Endpoint GET /api/user/previews возвращает статус предпросмотров."
         
   - task: "IP блокировка и VK трекинг"
     implemented: true
