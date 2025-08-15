@@ -403,12 +403,6 @@ const RegisterPage = () => {
               {loading ? 'Подача заявки...' : 'Подать заявку'}
             </Button>
           </form>
-
-          {message && (
-            <Alert className="mt-4">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </div>
