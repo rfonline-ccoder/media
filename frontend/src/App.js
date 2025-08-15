@@ -697,6 +697,12 @@ const RegisterPage = () => {
       setFormData({ nickname: '', login: '', password: '', vk_link: '', channel_link: '' });
       setErrors({});
     } catch (error) {
+      console.error('❌ Registration Error:', error);
+      console.log('Error details:', {
+        message: error.message,
+        response: error.response,
+        config: error.config
+      });
       toast({
         title: "❌ Ошибка регистрации",
         description: error.response?.data?.detail || error.message,
