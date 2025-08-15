@@ -67,6 +67,14 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Debug environment variables
+console.log('🔍 Environment Debug:', {
+  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
+  BACKEND_URL,
+  API,
+  allEnvVars: process.env
+});
+
 // Auth Context
 const AuthContext = React.createContext(null);
 
