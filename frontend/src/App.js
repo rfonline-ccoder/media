@@ -1417,8 +1417,10 @@ const AdminPage = () => {
   const [purchases, setPurchases] = useState([]);
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [advancedStats, setAdvancedStats] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('applications');
+  const [activeTab, setActiveTab] = useState('stats'); // Start with stats tab
   
   // Search and Filter States
   const [userSearch, setUserSearch] = useState('');
