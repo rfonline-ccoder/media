@@ -472,49 +472,65 @@ const HomePage = () => {
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 mb-6 animate-pulse">
-            Добро пожаловать в SwagMedia
+            SwagMedia Platform
           </h1>
           <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            🎯 Платформа для медиа-создателей с собственной экономикой и системой вознаграждений
+            🎯 Платформа для медиа-создателей с собственной экономикой, системой предпросмотров и вознаграждений
           </p>
-          <div className="mt-8 flex justify-center space-x-4">
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
             <div className="bg-white rounded-full px-6 py-2 shadow-lg">
               <span className="text-blue-600 font-semibold">💎 Медиа-коины</span>
             </div>
             <div className="bg-white rounded-full px-6 py-2 shadow-lg">
-              <span className="text-purple-600 font-semibold">🚀 Премиум контент</span>
+              <span className="text-purple-600 font-semibold">🚀 Система предпросмотров</span>
             </div>
             <div className="bg-white rounded-full px-6 py-2 shadow-lg">
-              <span className="text-pink-600 font-semibold">⭐ Эксклюзивные товары</span>
+              <span className="text-pink-600 font-semibold">⭐ Премиум контент</span>
+            </div>
+            <div className="bg-white rounded-full px-6 py-2 shadow-lg">
+              <span className="text-green-600 font-semibold">🛡️ Защищенная платформа</span>
             </div>
           </div>
         </div>
 
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
             <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center justify-center space-x-2 text-blue-700">
                   <Users className="h-8 w-8" />
-                  <span className="text-lg">Медиа участников</span>
+                  <span className="text-lg">Всего пользователей</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-blue-600 mb-2">{stats.total_media}</div>
-                <p className="text-blue-600/80">Активных создателей контента</p>
+                <div className="text-4xl font-bold text-blue-600 mb-2">{stats.total_users || 0}</div>
+                <p className="text-blue-500">Зарегистрировано на платформе</p>
               </CardContent>
             </Card>
 
             <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <CardHeader>
                 <CardTitle className="flex items-center justify-center space-x-2 text-green-700">
-                  <TrendingUp className="h-8 w-8" />
-                  <span className="text-lg">Потрачено MC</span>
+                  <Shield className="h-8 w-8" />
+                  <span className="text-lg">Активных медиа</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-green-600 mb-2">{stats.total_mc_spent.toLocaleString()}</div>
-                <p className="text-green-600/80">Медиа-коинов в магазине</p>
+                <div className="text-4xl font-bold text-green-600 mb-2">{stats.approved_users || 0}</div>
+                <p className="text-green-500">Одобренных создателей</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-center space-x-2 text-purple-700">
+                  <FileText className="h-8 w-8" />
+                  <span className="text-lg">Отчеты</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold text-purple-600 mb-2">{stats.total_reports || 0}</div>
+                <p className="text-purple-500">Отчетов отправлено</p>
               </CardContent>
             </Card>
 
@@ -522,55 +538,96 @@ const HomePage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center justify-center space-x-2 text-yellow-700">
                   <Coins className="h-8 w-8" />
-                  <span className="text-lg">Активных MC</span>
+                  <span className="text-lg">Медиа-коины</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-yellow-600 mb-2">{stats.total_mc_current.toLocaleString()}</div>
-                <p className="text-yellow-600/80">В обращении сейчас</p>
+                <div className="text-4xl font-bold text-yellow-600 mb-2">{stats.total_mc_earned || 0}</div>
+                <p className="text-yellow-500">MC заработано всего</p>
               </CardContent>
             </Card>
           </div>
         )}
 
+        {/* Основные функции платформы */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-blue-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold mb-3 text-blue-700">Система предпросмотров</h3>
+              <p className="text-gray-600">Каждый пользователь получает 3 бесплатных предпросмотра платного контента. При превышении лимита автоматическая блокировка на 15 дней.</p>
+            </div>
+          </Card>
+
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-green-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">💎</div>
+              <h3 className="text-xl font-bold mb-3 text-green-700">Медиа-коины (MC)</h3>
+              <p className="text-gray-600">Внутренняя валюта платформы. Зарабатывайте MC за отчеты и тратьте на премиум товары в магазине.</p>
+            </div>
+          </Card>
+
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-purple-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🛡️</div>
+              <h3 className="text-xl font-bold mb-3 text-purple-700">IP защита</h3>
+              <p className="text-gray-600">Система блокировки IP адресов и VK аккаунтов для предотвращения создания мультиаккаунтов.</p>
+            </div>
+          </Card>
+
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-yellow-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">⭐</div>
+              <h3 className="text-xl font-bold mb-3 text-yellow-700">Рейтинговая система</h3>
+              <p className="text-gray-600">Оценивайте других пользователей и следите за лидербордом лучших медиа-создателей.</p>
+            </div>
+          </Card>
+
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-red-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎁</div>
+              <h3 className="text-xl font-bold mb-3 text-red-700">Премиум магазин</h3>
+              <p className="text-gray-600">Эксклюзивные товары за медиа-коины: VIP статус, ускорения, кастомные темы и многое другое.</p>
+            </div>
+          </Card>
+
+          <Card className="p-6 hover:shadow-xl transition-shadow border-2 border-indigo-100">
+            <div className="text-center">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="text-xl font-bold mb-3 text-indigo-700">Аналитика</h3>
+              <p className="text-gray-600">Детальная статистика активности, графики доходов и экспорт данных для анализа.</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Призыв к действию */}
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-8">
-            🚀 Начните свой путь в мире медиа
-          </h2>
-          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300" asChild>
-              <a href="/register">
+          <Card className="max-w-2xl mx-auto p-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
+            <h2 className="text-3xl font-bold mb-4">Присоединяйтесь к SwagMedia!</h2>
+            <p className="text-xl mb-6 opacity-90">
+              Создавайте качественный контент, зарабатывайте медиа-коины и развивайтесь вместе с сообществом.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button 
+                size="lg" 
+                variant="secondary"
+                className="bg-white text-blue-600 hover:bg-gray-100"
+                onClick={() => window.location.href = '/register'}
+              >
                 <UserPlus className="h-5 w-5 mr-2" />
-                Подать заявку
-              </a>
-            </Button>
-            <Button variant="outline" size="lg" className="border-2 border-gray-300 hover:border-blue-500 text-gray-700 hover:text-blue-600 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300" asChild>
-              <a href="/media-list">
+                Зарегистрироваться
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-blue-600"
+                onClick={() => window.location.href = '/media-list'}
+              >
                 <Users className="h-5 w-5 mr-2" />
-                Посмотреть медиа
-              </a>
-            </Button>
-          </div>
-          
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300">
-              <div className="text-blue-600 text-4xl mb-4">💰</div>
-              <h3 className="text-xl font-bold mb-2">Зарабатывайте MC</h3>
-              <p className="text-gray-600">Подавайте отчеты и получайте медиа-коины за активность</p>
+                Смотреть медиа
+              </Button>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300">
-              <div className="text-purple-600 text-4xl mb-4">🛒</div>
-              <h3 className="text-xl font-bold mb-2">Тратьте в магазине</h3>
-              <p className="text-gray-600">Покупайте премиум функции и эксклюзивные товары</p>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300">
-              <div className="text-green-600 text-4xl mb-4">🎯</div>
-              <h3 className="text-xl font-bold mb-2">Развивайте канал</h3>
-              <p className="text-gray-600">Получайте поддержку и инструменты для роста</p>
-            </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
