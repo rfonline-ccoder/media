@@ -780,7 +780,134 @@ async def get_leaderboard():
                 "channel_link": user["channel_link"]
             })
     
-    return leaderboard
+# Data Export Endpoints
+@api_router.get("/admin/export/{data_type}")
+async def export_data(data_type: str, current_user: dict = Depends(get_current_user)):
+    if current_user["admin_level"] < 1:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    import csv
+    from io import StringIO
+    from fastapi.responses import Response
+    
+    if data_type == "users":
+        users = await db.users.find().to_list(10000)
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Login", "Nickname", "VK Link", "Channel Link", "Balance", "Media Type", "Admin Level", "Is Approved", "Warnings", "Created At"])
+        
+        for user in users:
+            writer.writerow([
+                user.get("id", ""),
+                user.get("login", ""),
+                user.get("nickname", ""),
+                user.get("vk_link", ""),
+                user.get("channel_link", ""),
+                user.get("balance", 0),
+                "Платное" if user.get("media_type") == 1 else "Бесплатное",
+                user.get("admin_level", 0),
+                "Да" if user.get("is_approved") else "Нет",
+                user.get("warnings", 0),
+                user.get("created_at", "").isoformat() if user.get("created_at") else ""
+            ])
+        
+        content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=users.csv"}
+        )
+    
+    elif data_type == "reports":
+        reports = await db.reports.find().to_list(10000)
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "User ID", "Status", "Links", "Admin Comment", "Created At"])
+        
+        for report in reports:
+            user = await db.users.find_one({"id": report.get("user_id")})
+            links_str = "; ".join([f"{link.get('url', '')} ({link.get('views', 0)} views)" for link in report.get("links", [])])
+            
+            writer.writerow([
+                report.get("id", ""),
+                user.get("nickname", "") if user else report.get("user_id", ""),
+                report.get("status", ""),
+                links_str,
+                report.get("admin_comment", ""),
+                report.get("created_at", "").isoformat() if report.get("created_at") else ""
+            ])
+        
+        content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=reports.csv"}
+        )
+    
+    elif data_type == "purchases":
+        purchases = await db.purchases.find().to_list(10000)
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "User", "Item", "Quantity", "Total Price", "Status", "Admin Comment", "Created At"])
+        
+        for purchase in purchases:
+            user = await db.users.find_one({"id": purchase.get("user_id")})
+            item = await db.shop_items.find_one({"id": purchase.get("item_id")})
+            
+            writer.writerow([
+                purchase.get("id", ""),
+                user.get("nickname", "") if user else purchase.get("user_id", ""),
+                item.get("name", "") if item else purchase.get("item_id", ""),
+                purchase.get("quantity", 0),
+                purchase.get("total_price", 0),
+                purchase.get("status", ""),
+                purchase.get("admin_comment", ""),
+                purchase.get("created_at", "").isoformat() if purchase.get("created_at") else ""
+            ])
+        
+        content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=purchases.csv"}
+        )
+    
+    elif data_type == "ratings":
+        ratings = await db.ratings.find().to_list(10000)
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Rater", "Rated User", "Rating", "Comment", "Created At"])
+        
+        for rating in ratings:
+            rater = await db.users.find_one({"id": rating.get("user_id")})
+            rated_user = await db.users.find_one({"id": rating.get("rated_user_id")})
+            
+            writer.writerow([
+                rating.get("id", ""),
+                rater.get("nickname", "") if rater else rating.get("user_id", ""),
+                rated_user.get("nickname", "") if rated_user else rating.get("rated_user_id", ""),
+                rating.get("rating", 0),
+                rating.get("comment", ""),
+                rating.get("created_at", "").isoformat() if rating.get("created_at") else ""
+            ])
+        
+        content = output.getvalue()
+        output.close()
+        
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=ratings.csv"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid export type. Options: users, reports, purchases, ratings")
 
 # Include the router in the main app
 app.include_router(api_router)
