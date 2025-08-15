@@ -310,20 +310,41 @@ test_plan:
   test_all: true
   test_priority: "high_first"
 
-  - task: "Notifications System Frontend"
+  - task: "Обновленный медиа-лист с системой предпросмотров"
     implemented: true
-    working: true
+    working: false
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: false
         agent: "main"
-        comment: "Система уведомлений в навигации реализована: Bell иконка, модальное окно, счетчик непрочитанных, интеграция с API уведомлений"
-      - working: true
-        agent: "testing"
-        comment: "✅ СИСТЕМА УВЕДОМЛЕНИЙ ПОЛНОСТЬЮ ПРОТЕСТИРОВАНА И РАБОТАЕТ! 1) Bell иконка присутствует в навигации ✅, 2) Модальное окно открывается корректно ✅, 3) Отображение 'Нет уведомлений' работает ✅, 4) Создание уведомлений через смену типа медиа работает ✅, 5) Красный бейдж с количеством уведомлений отображается ✅, 6) Время в правильном русском формате (15.08.2025, 14:43:52) ✅, 7) Интерфейс выглядит отлично и адаптивен ✅, 8) Мобильная версия работает корректно ✅. Minor: функция пометки как прочитанное работает частично - требует доработки API интеграции."
+        comment: "Полностью переписан MediaListPage с системой предварительных просмотров. Добавлен показ статуса предпросмотров (осталось X/3), кнопки доступа к платному медиа, модальные окна для просмотра ограниченного контента, проверки авторизации и блокировки."
+        
+  - task: "Страница рейтингов и лидерборда"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлена полная страница RatingsPage с лидербордом пользователей, системой 5-звездочных рейтингов, модальными окнами для детального просмотра пользователей и их отзывов, формой отправки рейтингов с комментариями. Добавлен route /ratings и навигация."
+        
+  - task: "Админ таб черного списка"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлен новый таб 'Черный список' в админ панель с компонентом BlacklistManagementTab. Отображение заблокированных пользователей и IP адресов, кнопки управления: сброс предпросмотров, разблокировка пользователей. Статистика блокировок."
 
 agent_communication:
   - agent: "main"
