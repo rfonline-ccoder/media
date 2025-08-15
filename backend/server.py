@@ -484,6 +484,19 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
             del notification["_id"]
     return notifications
 
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+    # Update notification as read
+    result = await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user["id"]},
+        {"$set": {"read": True}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {"message": "Notification marked as read"}
+
 @api_router.post("/admin/users/{user_id}/warning")
 async def add_user_warning(user_id: str, current_user: dict = Depends(get_current_user)):
     if current_user["admin_level"] < 1:
