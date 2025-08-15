@@ -628,8 +628,8 @@ async def get_stats():
         "total_mc_current": total_mc_current
     }
     
-    # Cache for 5 minutes
-    set_cache("basic_stats", stats, 300)
+    # Cache for 5 minutes using constant
+    set_cache("basic_stats", stats, CACHE_TTL_STATS)
     return stats
 
 # Advanced Statistics endpoint
