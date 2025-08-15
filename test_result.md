@@ -216,15 +216,18 @@ backend:
 
   - task: "Админ управление предпросмотрами"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Добавлены админ endpoints: /admin/blacklist для просмотра черного списка, /admin/users/{user_id}/reset-previews для сброса предпросмотров, /admin/users/{user_id}/unblacklist для разблокировки, /user/previews для получения статуса предпросмотров пользователя."
+      - working: true
+        agent: "testing"
+        comment: "✅ ПРОТЕСТИРОВАНО: Админ управление предпросмотрами работает отлично! Endpoint GET /api/admin/blacklist возвращает полную информацию о заблокированных IP адресах и пользователях. Endpoint POST /api/admin/users/{user_id}/reset-previews успешно сбрасывает счетчик предпросмотров пользователя. Endpoint POST /api/admin/users/{user_id}/unblacklist корректно разблокирует пользователей. Endpoint GET /api/user/previews предоставляет полную информацию о статусе предпросмотров: использовано, лимит, осталось, статус блокировки."
 
 frontend:
   - task: "Form Validation Frontend"
