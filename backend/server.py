@@ -183,7 +183,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 # Authentication endpoints
 @api_router.post("/register")
-async def register(registration: RegistrationRequest):
+@limiter.limit("5/minute")  # 5 registrations per minute
+async def register(request: Request, registration: RegistrationRequest):
     # Check if login already exists
     existing_login = await db.users.find_one({"login": registration.login})
     if existing_login:
