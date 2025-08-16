@@ -8,11 +8,11 @@
 **Для быстрой установки на чистый Ubuntu 22 сервер**
 
 ```bash
-# Скопируйте проект на сервер
-scp -r /path/to/project root@your-server:/root/
+# Скопируйте проект на сервер (весь проект с папками backend/, frontend/ и скриптами)
+scp -r /path/to/SwagMedia-project/ root@your-server:/root/
 
 # Запустите быструю установку
-cd /root
+cd /root/SwagMedia-project
 chmod +x quick-deploy.sh
 sudo ./quick-deploy.sh
 ```
