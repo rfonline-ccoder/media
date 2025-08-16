@@ -12,8 +12,8 @@
 
 1. **Загрузите проект на сервер:**
 ```bash
-# Скопируйте весь проект в /root/media
-scp -r /path/to/project root@your-server-ip:/root/
+# Скопируйте весь проект (с папками backend/, frontend/ и скриптами) в любую папку
+scp -r /local/path/to/SwagMedia-project root@your-server-ip:/root/SwagMedia/
 ```
 
 2. **Запустите автоматическую установку:**
