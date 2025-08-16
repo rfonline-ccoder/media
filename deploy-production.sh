@@ -107,16 +107,17 @@ rm -rf $PROJECT_DIR
 mkdir -p $PROJECT_DIR
 cd $PROJECT_DIR
 
-# Копирование файлов проекта (предполагается что скрипт запускается из папки с проектом)
+# Копирование файлов проекта
 log "📋 Копируем файлы проекта..."
-if [ -d "/app/backend" ] && [ -d "/app/frontend" ]; then
-    cp -r /app/backend $PROJECT_DIR/
-    cp -r /app/frontend $PROJECT_DIR/
-    cp -r /app/tests $PROJECT_DIR/ 2>/dev/null || true
-    cp /app/*.md $PROJECT_DIR/ 2>/dev/null || true
-    log "✅ Файлы проекта скопированы"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/backend" ] && [ -d "$SCRIPT_DIR/frontend" ]; then
+    cp -r "$SCRIPT_DIR/backend" $PROJECT_DIR/
+    cp -r "$SCRIPT_DIR/frontend" $PROJECT_DIR/
+    cp -r "$SCRIPT_DIR/tests" $PROJECT_DIR/ 2>/dev/null || true
+    cp "$SCRIPT_DIR"/*.md $PROJECT_DIR/ 2>/dev/null || true
+    log "✅ Файлы проекта скопированы из $SCRIPT_DIR"
 else
-    error "Не найдены директории /app/backend и /app/frontend. Убедитесь что скрипт запущен из правильной папки."
+    error "Не найдены директории backend и frontend в $SCRIPT_DIR. Убедитесь что скрипт лежит в корне проекта рядом с папками backend/ и frontend/"
 fi
 
 # Настройка базы данных MySQL
