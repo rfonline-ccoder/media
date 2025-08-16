@@ -26,8 +26,8 @@
 
 ### Шаг 2: Скопируйте проект
 ```bash
-# Скопируйте ВЕСЬ проект в /root/media на сервере
-scp -r SwagMedia-Project/ root@ваш-ip:/root/media/
+# Скопируйте ВЕСЬ проект (папки backend/, frontend/, скрипты *.sh) в любую папку на сервере
+scp -r SwagMedia-Project/ root@ваш-ip:/root/SwagMedia/
 ```
 
 ### Шаг 3: Запустите установку
