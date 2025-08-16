@@ -18,7 +18,7 @@ scp -r /local/path/to/SwagMedia-project root@your-server-ip:/root/SwagMedia/
 
 2. **Запустите автоматическую установку:**
 ```bash
-cd /root
+cd /root/SwagMedia
 chmod +x deploy-production.sh
 ./deploy-production.sh
 ```
