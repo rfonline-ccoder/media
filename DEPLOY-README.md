@@ -82,7 +82,7 @@ scp -r SwagMedia-Project/* root@your-server:/root/SwagMedia/
 
 3. **Запустите установку:**
 ```bash
-cd /root
+cd /root/SwagMedia
 chmod +x quick-deploy.sh
 ./quick-deploy.sh
 ```
