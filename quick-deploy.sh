@@ -70,16 +70,57 @@ echo "📁 Создаем директорию проекта..."
 mkdir -p $PROJECT_DIR
 cd $PROJECT_DIR
 
-# Копирование файлов
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$SCRIPT_DIR/backend" ] && [ -d "$SCRIPT_DIR/frontend" ]; then
-    echo "📋 Копируем файлы проекта..."
-    cp -r "$SCRIPT_DIR/backend" "$SCRIPT_DIR/frontend" $PROJECT_DIR/
-    echo "✅ Файлы скопированы из $SCRIPT_DIR"
+# Поиск и копирование файлов
+echo "📋 Ищем файлы проекта..."
+
+# Функция поиска папок проекта
+find_project() {
+    local dirs=(
+        "$(pwd)"
+        "$(dirname "$(readlink -f "$0")" 2>/dev/null || dirname "$0")"
+        "/root/media" 
+        "/root"
+        "$(dirname "$(pwd)")"
+    )
+    
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir/backend" ] && [ -d "$dir/frontend" ]; then
+            echo "$dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
+SOURCE=$(find_project)
+
+if [ -n "$SOURCE" ]; then
+    echo "✅ Найдены файлы в: $SOURCE"
+    if [ "$SOURCE" != "$PROJECT_DIR" ]; then
+        echo "📂 Копируем файлы..."
+        cp -r "$SOURCE/backend" "$SOURCE/frontend" "$PROJECT_DIR/"
+        echo "✅ Файлы скопированы"
+    else
+        echo "✅ Файлы уже в нужном месте"
+    fi
 else
-    echo "❌ Файлы проекта не найдены в $SCRIPT_DIR/"
-    echo "Убедитесь что скрипт лежит рядом с папками backend/ и frontend/"
-    exit 1
+    echo "❌ Не найдены папки backend/ и frontend/"
+    echo ""
+    echo "Проверьте структуру файлов:"
+    echo "$(pwd)/backend/  - $([ -d "$(pwd)/backend" ] && echo "✅ есть" || echo "❌ нет")"
+    echo "$(pwd)/frontend/ - $([ -d "$(pwd)/frontend" ] && echo "✅ есть" || echo "❌ нет")"
+    echo ""
+    
+    read -p "Введите путь к папке с проектом (или Enter для отмены): " custom_path
+    
+    if [ -n "$custom_path" ] && [ -d "$custom_path/backend" ] && [ -d "$custom_path/frontend" ]; then
+        echo "✅ Найдены файлы в: $custom_path"
+        cp -r "$custom_path/backend" "$custom_path/frontend" "$PROJECT_DIR/"
+        echo "✅ Файлы скопированы"
+    else
+        echo "❌ Установка отменена"
+        exit 1
+    fi
 fi
 
 # База данных
