@@ -36,7 +36,7 @@ scp -r SwagMedia-Project/ root@ваш-ip:/root/SwagMedia/
 ssh root@ваш-ip
 
 # Перейдите в папку проекта  
-cd /root/media
+cd /root/SwagMedia
 
 # Запустите быструю установку
 chmod +x quick-deploy.sh
