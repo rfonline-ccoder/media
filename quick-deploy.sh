@@ -71,11 +71,14 @@ mkdir -p $PROJECT_DIR
 cd $PROJECT_DIR
 
 # Копирование файлов
-if [ -d "/app/backend" ]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/backend" ] && [ -d "$SCRIPT_DIR/frontend" ]; then
     echo "📋 Копируем файлы проекта..."
-    cp -r /app/backend /app/frontend $PROJECT_DIR/
+    cp -r "$SCRIPT_DIR/backend" "$SCRIPT_DIR/frontend" $PROJECT_DIR/
+    echo "✅ Файлы скопированы из $SCRIPT_DIR"
 else
-    echo "❌ Файлы проекта не найдены в /app/"
+    echo "❌ Файлы проекта не найдены в $SCRIPT_DIR/"
+    echo "Убедитесь что скрипт лежит рядом с папками backend/ и frontend/"
     exit 1
 fi
 
