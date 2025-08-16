@@ -109,15 +109,93 @@ cd $PROJECT_DIR
 
 # Копирование файлов проекта
 log "📋 Копируем файлы проекта..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$SCRIPT_DIR/backend" ] && [ -d "$SCRIPT_DIR/frontend" ]; then
-    cp -r "$SCRIPT_DIR/backend" $PROJECT_DIR/
-    cp -r "$SCRIPT_DIR/frontend" $PROJECT_DIR/
-    cp -r "$SCRIPT_DIR/tests" $PROJECT_DIR/ 2>/dev/null || true
-    cp "$SCRIPT_DIR"/*.md $PROJECT_DIR/ 2>/dev/null || true
-    log "✅ Файлы проекта скопированы из $SCRIPT_DIR"
+
+# Функция поиска папок проекта
+find_project_dirs() {
+    local search_dirs=(
+        "$(pwd)"                                    # Текущая директория
+        "$(dirname "$(readlink -f "$0")")"        # Директория скрипта
+        "/root/media"                              # Целевая директория
+        "/root"                                    # Корень root
+        "$(dirname "$(pwd)")"                     # Родительская директория
+    )
+    
+    for dir in "${search_dirs[@]}"; do
+        if [ -d "$dir/backend" ] && [ -d "$dir/frontend" ]; then
+            echo "$dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Поиск файлов проекта
+SOURCE_DIR=$(find_project_dirs)
+
+if [ -n "$SOURCE_DIR" ]; then
+    log "✅ Найдены файлы проекта в: $SOURCE_DIR"
+    
+    # Копируем файлы только если источник не равен назначению
+    if [ "$SOURCE_DIR" != "$PROJECT_DIR" ]; then
+        log "📂 Копируем из $SOURCE_DIR в $PROJECT_DIR..."
+        cp -r "$SOURCE_DIR/backend" $PROJECT_DIR/
+        cp -r "$SOURCE_DIR/frontend" $PROJECT_DIR/
+        cp -r "$SOURCE_DIR/tests" $PROJECT_DIR/ 2>/dev/null || true
+        cp "$SOURCE_DIR"/*.md $PROJECT_DIR/ 2>/dev/null || true
+        cp "$SOURCE_DIR"/*.sh $PROJECT_DIR/ 2>/dev/null || true
+        log "✅ Файлы проекта скопированы"
+    else
+        log "✅ Файлы уже находятся в целевой директории"
+    fi
 else
-    error "Не найдены директории backend и frontend в $SCRIPT_DIR. Убедитесь что скрипт лежит в корне проекта рядом с папками backend/ и frontend/"
+    # Интерактивный режим - спрашиваем у пользователя
+    warning "Автоматический поиск не удался. Укажите путь к файлам проекта:"
+    echo "Текущая директория: $(pwd)"
+    echo "Ищем папки: backend/ и frontend/"
+    echo ""
+    echo "Возможные варианты:"
+    echo "1. Файлы в текущей директории"
+    echo "2. Указать путь вручную"
+    echo "3. Отмена"
+    
+    read -p "Выберите вариант (1-3): " choice
+    
+    case $choice in
+        1)
+            if [ -d "./backend" ] && [ -d "./frontend" ]; then
+                SOURCE_DIR="$(pwd)"
+                log "✅ Используем текущую директорию: $SOURCE_DIR"
+            else
+                error "В текущей директории нет папок backend/ и frontend/"
+            fi
+            ;;
+        2)
+            read -p "Введите полный путь к папке с проектом: " custom_path
+            if [ -d "$custom_path/backend" ] && [ -d "$custom_path/frontend" ]; then
+                SOURCE_DIR="$custom_path"
+                log "✅ Используем указанный путь: $SOURCE_DIR"
+            else
+                error "По указанному пути $custom_path не найдены папки backend/ и frontend/"
+            fi
+            ;;
+        3)
+            error "Установка отменена пользователем"
+            ;;
+        *)
+            error "Неверный выбор. Установка отменена"
+            ;;
+    esac
+    
+    # Копируем файлы после интерактивного выбора
+    if [ -n "$SOURCE_DIR" ] && [ "$SOURCE_DIR" != "$PROJECT_DIR" ]; then
+        log "📂 Копируем из $SOURCE_DIR в $PROJECT_DIR..."
+        cp -r "$SOURCE_DIR/backend" $PROJECT_DIR/
+        cp -r "$SOURCE_DIR/frontend" $PROJECT_DIR/
+        cp -r "$SOURCE_DIR/tests" $PROJECT_DIR/ 2>/dev/null || true
+        cp "$SOURCE_DIR"/*.md $PROJECT_DIR/ 2>/dev/null || true
+        cp "$SOURCE_DIR"/*.sh $PROJECT_DIR/ 2>/dev/null || true
+        log "✅ Файлы проекта скопированы"
+    fi
 fi
 
 # Настройка базы данных MySQL
