@@ -75,9 +75,9 @@ apt update && apt upgrade -y
 
 2. **Скопируйте проект:**
 ```bash
-# Загрузите весь проект в /root/media
-mkdir -p /root/media
-# Скопируйте файлы: backend/, frontend/, *.sh, *.md
+# Загрузите весь проект в любую папку на сервере
+mkdir -p /root/SwagMedia
+scp -r SwagMedia-Project/* root@your-server:/root/SwagMedia/
 ```
 
 3. **Запустите установку:**
